@@ -1,21 +1,18 @@
+import { Routes, Route, Navigate } from "react-router";
+
+import { AppLayout } from "@/components/layout/app-layout";
+import { DashboardPage } from "@/pages/dashboard-page";
+import { SettingsPage } from "@/pages/settings-page";
+
 export default function App() {
   return (
-    <div className="p-8 font-sans">
-      <h1 className="text-3xl font-bold">
-        Enterprise Admin Dashboard
-      </h1>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
 
-      <p className="mt-3 text-sm font-normal">
-        This dashboard uses Poppins typography.
-      </p>
-
-      <p className="mt-2 text-base font-medium">
-        Medium weight typography
-      </p>
-
-      <p className="mt-2 text-lg font-semibold">
-        Semibold typography
-      </p>
-    </div>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

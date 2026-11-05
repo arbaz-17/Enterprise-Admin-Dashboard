@@ -1,4 +1,3 @@
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -51,14 +50,22 @@
   --chart-5: #b87700;
 
   /* Sidebar */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #09090e;
-  --sidebar-primary: #fe6807;
+  /* Sidebar — Light Mode */
+  --sidebar: #fe6807;
+  --sidebar-foreground: #211307;
+
+  --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #09090e;
-  --sidebar-accent: #fff0e6;
-  --sidebar-accent-foreground: #873600;
-  --sidebar-border: #e5e5e9;
-  --sidebar-ring: #fe6807;
+
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #09090e;
+
+  --sidebar-border: #c95506;
+  --sidebar-ring: #09090e;
+
+  /* Additional sidebar design tokens */
+  --sidebar-hover: rgb(255 255 255 / 22%);
+  --sidebar-muted: #552708;
 }
 
 /* ========================================
@@ -105,14 +112,22 @@
   --chart-5: #f5b942;
 
   /* Sidebar */
-  --sidebar: #111117;
-  --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #fe6807;
-  --sidebar-primary-foreground: #09090e;
-  --sidebar-accent: #35251f;
-  --sidebar-accent-foreground: #ffb27e;
-  --sidebar-border: #30303a;
-  --sidebar-ring: #fe6807;
+  /* Sidebar — Dark Mode */
+  --sidebar: #fe6807;
+  --sidebar-foreground: #211307;
+
+  --sidebar-primary: #09090e;
+  --sidebar-primary-foreground: #f4f4f5;
+
+  --sidebar-accent: #09090e;
+  --sidebar-accent-foreground: #f4f4f5;
+
+  --sidebar-border: #c95506;
+  --sidebar-ring: #09090e;
+
+  /* Additional sidebar design tokens */
+  --sidebar-hover: rgb(9 9 14 / 12%);
+  --sidebar-muted: #552708;
 }
 
 /* ========================================
@@ -163,11 +178,9 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground:
-    var(--sidebar-primary-foreground);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground:
-    var(--sidebar-accent-foreground);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
@@ -203,5 +216,52 @@
 
   #root {
     min-height: 100vh;
+  }
+}
+
+
+/* ========================================
+   BRAND SIDEBAR NAVIGATION
+======================================== */
+
+@layer components {
+  .brand-nav-item {
+    color: var(--sidebar-foreground);
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  /* Inactive navigation hover */
+  .brand-nav-item:not([data-active="true"]):hover {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-foreground);
+  }
+
+  /* Active navigation in both themes */
+  .brand-nav-item[data-active="true"],
+  .brand-nav-item[data-active="true"]:hover {
+    background-color: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  }
+
+  /* Ensure icons inherit active text color */
+  .brand-nav-item[data-active="true"] svg {
+    color: currentColor;
+  }
+
+  /* Visible keyboard focus */
+  .brand-nav-item:focus-visible {
+    outline: 2px solid var(--sidebar-ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .brand-nav-item {
+      transition: none;
+    }
   }
 }
