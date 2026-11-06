@@ -15,6 +15,8 @@ import { healthRouter } from './routes/health.js'
 import { notFound } from './middleware/not-found.js'
 import { errorHandler } from './middleware/error-handler.js'
 
+import { usersRouter } from './routes/users.js'
+
 
 export const app = express()
 
@@ -62,6 +64,7 @@ app.use(cookieParser())
 // API routes
 app.use('/api/health', healthRouter)
 app.use('/api/auth', authRouter)
+app.use('/api/users', usersRouter)
 
 // 404 handler (after all API routes)
 app.use(notFound)

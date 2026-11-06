@@ -8,6 +8,9 @@ import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { verifyPassword } from "../modules/auth/password.js";
 import { createAccessToken } from "../modules/auth/tokens.js";
+import { getPermissions } from '../config/permissions.js'
+
+import { requireAuth } from '../middleware/require-auth.js'
 
 import {
   createRefreshSession,
@@ -174,4 +177,23 @@ authRouter.post(
     })
   }
 )
+
+
+// GET /api/auth/me
+
+authRouter.get('/me', requireAuth, (req, res) => {
+  const user = req.authUser
+
+  if (!user) {
+    res.sendStatus(401)
+    return
+  }
+
+  res.setHeader('Cache-Control', 'no-store')
+
+  res.status(200).json({
+    user,
+    permissions: getPermissions(user.role),
+  })
+})
 
