@@ -9,6 +9,8 @@ import {pinoHttp} from 'pino-http'
 import { env } from './config/env.js'
 import { logger } from './lib/logger.js'
 
+
+import { authRouter } from './routes/auth.js'
 import { healthRouter } from './routes/health.js'
 import { notFound } from './middleware/not-found.js'
 import { errorHandler } from './middleware/error-handler.js'
@@ -59,6 +61,7 @@ app.use(cookieParser())
 
 // API routes
 app.use('/api/health', healthRouter)
+app.use('/api/auth', authRouter)
 
 // 404 handler (after all API routes)
 app.use(notFound)
