@@ -1,0 +1,27 @@
+
+import type { User } from '../db/schema.js'
+
+export type Role = User['role']
+
+export type Permission =
+  | 'dashboard:read'
+  | 'users:read'
+  | 'users:manage'
+
+const permissionRoles: Record<Permission, readonly Role[]> = {
+  'dashboard:read': ['admin', 'manager', 'viewer'],
+  'users:read': ['admin', 'manager'],
+  'users:manage': ['admin'],
+}
+
+export function hasPermission(
+  role: Role,
+  permission: Permission
+): boolean {
+  return permissionRoles[permission].includes(role)
+}
+
+export function getPermissions(role: Role): Permission[] {
+  return (Object.keys(permissionRoles) as Permission[])
+    .filter((permission) => hasPermission(role, permission))
+}
