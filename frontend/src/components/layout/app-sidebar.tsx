@@ -22,6 +22,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+import { useAuth } from "@/hooks/use-auth";
+
 const navButtonClass =
   "brand-nav-item h-11 rounded-xl px-3 text-[13px] " +
   "font-medium transition-all duration-200 " +
@@ -30,6 +32,8 @@ const navButtonClass =
 export function AppSidebar() {
   const { pathname } = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
+
+  const { hasPermission } = useAuth();
 
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
@@ -72,6 +76,7 @@ export function AppSidebar() {
 
           <SidebarGroupContent>
             <SidebarMenu className="gap-1.5">
+              {hasPermission("dashboard:read") && (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -91,7 +96,7 @@ export function AppSidebar() {
                     )}
                   </NavLink>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem>)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

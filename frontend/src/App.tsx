@@ -1,7 +1,14 @@
 
-import { Routes, Route, Navigate } from "react-router";
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router";
 
 import { AppLayout } from "@/components/layout/app-layout";
+
+import { ProtectedRoute } from
+  "@/features/auth/protected-route";
 
 import { LoginPage } from "@/pages/login-page";
 import { DashboardPage } from "@/pages/dashboard-page";
@@ -10,16 +17,41 @@ import { SettingsPage } from "@/pages/settings-page";
 export default function App() {
   return (
     <Routes>
-      {/* Public login route */}
-      <Route path="login" element={<LoginPage />} />
+      {/* Public */}
+      <Route
+        path="/login"
+        element={<LoginPage />}
+      />
 
-      {/* Existing dashboard layout */}
-      <Route element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      {/* Authentication required */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          {/* Dashboard permission required */}
+          <Route
+            element={
+              <ProtectedRoute
+                requiredPermission="dashboard:read"
+              />
+            }
+          >
+            <Route
+              index
+              element={<DashboardPage />}
+            />
+          </Route>
+
+          {/* Accessible to authenticated users */}
+          <Route
+            path="/settings"
+            element={<SettingsPage />}
+          />
+        </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
     </Routes>
   );
 }
