@@ -1,13 +1,7 @@
-
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
-import {
-  ChevronDown,
-  LoaderCircle,
-  LogOut,
-  UserRound,
-} from "lucide-react";
+import { ChevronDown, LoaderCircle, LogOut, UserRound } from "lucide-react";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { findNavigationItem } from "@/config/navigation";
+
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -33,12 +29,12 @@ export function AppHeader() {
   const { user, logout } = useAuth();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [logoutError, setLogoutError] = useState<string | null>(
-    null
-  );
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
-  const pageTitle =
-    pathname === "/settings" ? "Settings" : "Overview";
+  const currentPage = findNavigationItem(pathname);
+
+  const pageTitle = currentPage?.item.label ?? "Workspace";
+  const pageGroup = currentPage?.group ?? "Navigation";
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -64,18 +60,32 @@ export function AppHeader() {
       >
         {/* Left: sidebar toggle and page title */}
         <div className="flex min-w-0 items-center gap-3">
-          <SidebarTrigger
-            className="-ml-1"
-          />
+          <SidebarTrigger className="-ml-1" />
 
-          <Separator
-            orientation="vertical"
-            className="h-4"
-          />
+          <Separator orientation="vertical" className="h-4" />
 
-          <span className="truncate text-sm font-semibold">
-            {pageTitle}
-          </span>
+          <nav
+            aria-label="Breadcrumb"
+            className="flex min-w-0 items-center gap-2 text-sm"
+          >
+            <span className="hidden text-muted-foreground sm:inline">
+              {pageGroup}
+            </span>
+
+            <span
+              aria-hidden="true"
+              className="hidden text-muted-foreground/50 sm:inline"
+            >
+              /
+            </span>
+
+            <span
+              className="truncate font-semibold text-foreground"
+              aria-current="page"
+            >
+              {pageTitle}
+            </span>
+          </nav>
         </div>
 
         {/* Right: theme and user account */}
@@ -97,10 +107,7 @@ export function AppHeader() {
                     aria-hidden="true"
                   />
                 ) : (
-                  <UserRound
-                    className="size-4"
-                    aria-hidden="true"
-                  />
+                  <UserRound className="size-4" aria-hidden="true" />
                 )}
 
                 <span className="hidden max-w-28 truncate sm:inline">
@@ -114,14 +121,9 @@ export function AppHeader() {
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent
-              align="end"
-              className="w-64"
-            >
+            <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel className="space-y-1">
-                <p className="truncate font-semibold">
-                  {user?.name}
-                </p>
+                <p className="truncate font-semibold">{user?.name}</p>
 
                 <p className="truncate text-xs font-normal text-muted-foreground">
                   {user?.email}

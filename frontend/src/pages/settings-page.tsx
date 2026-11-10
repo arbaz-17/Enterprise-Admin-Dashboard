@@ -1,53 +1,55 @@
 
+import { PageHeader } from "@/components/layout/page-header";
+
+import { ModeToggle } from "@/components/theme/mode-toggle";
+
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
-
-import { Separator } from "@/components/ui/separator";
-import { ModeToggle } from "@/components/theme/mode-toggle";
 
 export function SettingsPage() {
   return (
     <div className="space-y-6">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Settings
-        </h1>
+      <PageHeader
+        title="Settings"
+        description="Manage your workspace preferences and appearance."
+      />
 
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your application preferences.
-        </p>
-      </div>
-
-      {/* Appearance settings */}
-      <Card>
+      <Card className="max-w-3xl">
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
+          <CardTitle>
+            <h2 className="text-base font-semibold">
+              Appearance
+            </h2>
+          </CardTitle>
 
           <CardDescription>
-            Customize the application's visual appearance.
+            Customize the appearance of your workspace.
           </CardDescription>
         </CardHeader>
 
-        <Separator />
+        <CardContent>
+          <div
+            className="flex flex-col gap-4
+                       sm:flex-row sm:items-center
+                       sm:justify-between"
+          >
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                Theme preference
+              </p>
 
-        <CardContent className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">
-              Theme
-            </p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Select light, dark, or system appearance.
+              </p>
+            </div>
 
-            <p className="text-xs text-muted-foreground">
-              Choose between light, dark, or system mode.
-            </p>
+            <ModeToggle />
           </div>
-
-          <ModeToggle />
         </CardContent>
       </Card>
     </div>

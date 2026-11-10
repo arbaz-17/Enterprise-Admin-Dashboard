@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:check": "tsx src/db/check-connection.ts",
-    "db:seed-admin": "tsx src/db/seed-admin.ts"
+    "db:seed-admin": "tsx src/db/seed-admin.ts",
+    "db:seed-users": "tsx src/db/seed-users.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
