@@ -1,20 +1,8 @@
+import axios, { type InternalAxiosRequestConfig } from "axios";
 
-import axios, {
-  type InternalAxiosRequestConfig,
-} from "axios";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-
-import {
-  apiClient,
-  getAccessToken,
-  setAccessToken,
-} from "@/lib/api-client";
+import { apiClient, getAccessToken, setAccessToken } from "@/lib/api-client";
 
 import { authApi, restoreSession } from "./auth-api";
 import { AuthContext, type AuthStatus } from "./auth-context";
@@ -31,29 +19,19 @@ type RetryableRequest = InternalAxiosRequestConfig & {
 };
 
 function isSessionInvalid(error: unknown): boolean {
-  return (
-    axios.isAxiosError(error) &&
-    error.response?.status === 401
-  );
+  return axios.isAxiosError(error) && error.response?.status === 401;
 }
 
-export function AuthProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [status, setStatus] = useState<AuthStatus>("loading");
 
-  const establishSession = useCallback(
-    (data: CurrentUserResponse) => {
-      setUser(data.user);
-      setPermissions(data.permissions);
-      setStatus("authenticated");
-    },
-    []
-  );
+  const establishSession = useCallback((data: CurrentUserResponse) => {
+    setUser(data.user);
+    setPermissions(data.permissions);
+    setStatus("authenticated");
+  }, []);
 
   const clearSession = useCallback(
     (nextStatus: "unauthenticated" | "error") => {
@@ -62,7 +40,7 @@ export function AuthProvider({
       setPermissions([]);
       setStatus(nextStatus);
     },
-    []
+    [],
   );
 
   const retrySession = useCallback(async () => {
@@ -72,9 +50,7 @@ export function AuthProvider({
       const data = await restoreSession();
       establishSession(data);
     } catch (error) {
-      clearSession(
-        isSessionInvalid(error) ? "unauthenticated" : "error"
-      );
+      clearSession(isSessionInvalid(error) ? "unauthenticated" : "error");
     }
   }, [establishSession, clearSession]);
 
@@ -88,14 +64,19 @@ export function AuthProvider({
         const data = await authApi.getCurrentUser();
         establishSession(data);
       } catch (error) {
-        clearSession(
-          isSessionInvalid(error) ? "unauthenticated" : "error"
-        );
+        clearSession(isSessionInvalid(error) ? "unauthenticated" : "error");
         throw error;
       }
     },
-    [establishSession, clearSession]
+    [establishSession, clearSession],
   );
+
+  const logout = useCallback(async () => {
+    // Only clear the local session after backend confirmation.
+    await authApi.logout();
+
+    clearSession("unauthenticated");
+  }, [clearSession]);
 
   useEffect(() => {
     let active = true;
@@ -124,11 +105,7 @@ export function AuthProvider({
 
         // A request already retried once must not retry again.
         if (request._retry) {
-          if (
-            active &&
-            requestToken &&
-            requestToken === currentToken
-          ) {
+          if (active && requestToken && requestToken === currentToken) {
             clearSession("unauthenticated");
           }
 
@@ -144,10 +121,7 @@ export function AuthProvider({
 
         // Another request may have already refreshed the token.
         if (requestToken !== currentToken) {
-          request.headers.set(
-            "Authorization",
-            `Bearer ${currentToken}`
-          );
+          request.headers.set("Authorization", `Bearer ${currentToken}`);
 
           return apiClient(request);
         }
@@ -157,22 +131,20 @@ export function AuthProvider({
 
           request.headers.set(
             "Authorization",
-            `Bearer ${refreshed.accessToken}`
+            `Bearer ${refreshed.accessToken}`,
           );
 
           return apiClient(request);
         } catch (refreshError) {
           if (active && getAccessToken() === currentToken) {
             clearSession(
-              isSessionInvalid(refreshError)
-                ? "unauthenticated"
-                : "error"
+              isSessionInvalid(refreshError) ? "unauthenticated" : "error",
             );
           }
 
           return Promise.reject(refreshError);
         }
-      }
+      },
     );
 
     // Restore the session when the provider mounts.
@@ -184,11 +156,7 @@ export function AuthProvider({
       })
       .catch((error: unknown) => {
         if (active) {
-          clearSession(
-            isSessionInvalid(error)
-              ? "unauthenticated"
-              : "error"
-          );
+          clearSession(isSessionInvalid(error) ? "unauthenticated" : "error");
         }
       });
 
@@ -208,6 +176,7 @@ export function AuthProvider({
         permissions,
         status,
         login,
+        logout,
         retrySession,
         hasPermission,
       }}

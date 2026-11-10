@@ -1,9 +1,4 @@
-
-import {
-  apiClient,
-  sessionClient,
-  refreshAccessToken,
-} from "@/lib/api-client";
+import { apiClient, sessionClient, refreshAccessToken } from "@/lib/api-client";
 
 import type {
   LoginCredentials,
@@ -12,12 +7,10 @@ import type {
 } from "./auth.types";
 
 export const authApi = {
-  async login(
-    credentials: LoginCredentials
-  ): Promise<AuthResponse> {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const { data } = await sessionClient.post<AuthResponse>(
       "/auth/login",
-      credentials
+      credentials,
     );
 
     return data;
@@ -28,10 +21,13 @@ export const authApi = {
   },
 
   async getCurrentUser(): Promise<CurrentUserResponse> {
-    const { data } =
-      await apiClient.get<CurrentUserResponse>("/auth/me");
+    const { data } = await apiClient.get<CurrentUserResponse>("/auth/me");
 
     return data;
+  },
+
+  async logout(): Promise<void> {
+    await sessionClient.post("/auth/logout");
   },
 };
 

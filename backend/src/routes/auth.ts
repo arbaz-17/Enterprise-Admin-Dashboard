@@ -179,6 +179,32 @@ authRouter.post(
 )
 
 
+/**
+ * POST /api/auth/logout
+ *
+ * Revoke the current refresh session and clear its cookie.
+ * Access token is not required, so logout still works
+ * when the short-lived access token has expired.
+ */
+authRouter.post(
+  "/logout",
+  requireTrustedOrigin,
+  async (req, res) => {
+    const refreshToken = getRefreshToken(req);
+
+    if (refreshToken) {
+      await revokeRefreshSession(refreshToken);
+    }
+
+    clearRefreshCookie(res);
+
+    // Idempotent: also succeeds when no session exists.
+    res.sendStatus(204);
+  }
+);
+
+
+
 // GET /api/auth/me
 
 authRouter.get('/me', requireAuth, (req, res) => {
@@ -196,4 +222,6 @@ authRouter.get('/me', requireAuth, (req, res) => {
     permissions: getPermissions(user.role),
   })
 })
+
+
 

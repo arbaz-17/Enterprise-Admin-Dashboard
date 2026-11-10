@@ -1,11 +1,6 @@
-
 import { createContext } from "react";
 
-import type {
-  AuthUser,
-  LoginCredentials,
-  Permission,
-} from "./auth.types";
+import type { AuthUser, LoginCredentials, Permission } from "./auth.types";
 
 export type AuthStatus =
   | "loading"
@@ -21,7 +16,8 @@ export interface AuthContextValue {
   login: (credentials: LoginCredentials) => Promise<void>;
   retrySession: () => Promise<void>;
   hasPermission: (permission: Permission) => boolean;
+
+  logout: () => Promise<void>;
 }
 
-export const AuthContext =
-  createContext<AuthContextValue | null>(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
