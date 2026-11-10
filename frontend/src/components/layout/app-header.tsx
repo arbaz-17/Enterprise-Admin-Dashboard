@@ -7,6 +7,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/theme/mode-toggle";
+import { toast } from "sonner";
 
 import {
   DropdownMenu,
@@ -44,6 +45,9 @@ export function AppHeader() {
 
     try {
       await logout();
+
+      toast.success("Signed out successfully");
+
       navigate("/login", { replace: true });
     } catch (error) {
       setLogoutError(getApiErrorMessage(error));
