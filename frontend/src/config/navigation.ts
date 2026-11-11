@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Settings2,
   Building2,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,12 @@ export const navigationGroups: NavigationGroup[] = [
 {
   label: "Organization",
   items: [
+    {
+      label: "Employees",
+      href: "/employees",
+      icon: UsersRound,
+      permission: "employees:read",
+    },
     {
       label: "Departments",
       href: "/departments",

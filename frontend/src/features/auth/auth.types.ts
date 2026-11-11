@@ -7,7 +7,9 @@ export type Permission =
   | "users:read"
   | "users:manage"
   | "departments:read"
-  | "departments:manage";
+  | "departments:manage"
+  | "employees:read"
+  | "employees:manage";
 
 
 export interface AuthUser {

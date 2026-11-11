@@ -17,6 +17,7 @@ import { errorHandler } from './middleware/error-handler.js'
 
 import { usersRouter } from './routes/users.js'
 import { departmentsRouter } from './routes/departments.js'
+import { employeesRouter } from './routes/employees.js'
 
 
 export const app = express()
@@ -67,6 +68,7 @@ app.use('/api/health', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/departments', departmentsRouter)
+app.use('/api/employees', employeesRouter)
 
 // 404 handler (after all API routes)
 app.use(notFound)

@@ -6,6 +6,7 @@ import {
   text,
   boolean,
   timestamp,
+  date,
   check,
   index,
 } from 'drizzle-orm/pg-core'
@@ -132,3 +133,22 @@ export type RefreshSession =
 // Inferred TypeScript types
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+
+// Matches the app_private.employees table created in Supabase SQL Editor.
+export const employees = appPrivate.table('employees', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  fullName: text('full_name').notNull(),
+  workEmail: text('work_email').notNull(),
+  designation: text('designation').notNull(),
+  departmentId: uuid('department_id').notNull()
+    .references(() => departments.id, { onDelete: 'restrict' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['active', 'on_leave', 'inactive'] })
+    .notNull().default('active'),
+  joiningDate: date('joining_date', { mode: 'string' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type Employee = typeof employees.$inferSelect
+export type NewEmployee = typeof employees.$inferInsert
