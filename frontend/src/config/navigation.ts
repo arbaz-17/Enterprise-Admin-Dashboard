@@ -4,6 +4,7 @@ import {
   Settings2,
   Building2,
   UsersRound,
+  BriefcaseBusiness,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,6 +54,17 @@ export const navigationGroups: NavigationGroup[] = [
   ],
 },
 
+  {
+    label: 'Operations',
+    items: [
+      {
+        label: 'Clients',
+        href: '/clients',
+        icon: BriefcaseBusiness,
+        permission: 'clients:read',
+      },
+    ],
+  },
 ];
 
 // Account navigation

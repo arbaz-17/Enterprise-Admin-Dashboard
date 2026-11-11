@@ -11,6 +11,8 @@ export type Permission =
   | 'departments:manage'
   | 'employees:read'
   | 'employees:manage'
+  | 'clients:read'
+  | 'clients:manage'
 
 const permissionRoles: Record<
   Permission,
@@ -26,6 +28,9 @@ const permissionRoles: Record<
 
   'employees:read': ['admin', 'manager'],
   'employees:manage': ['admin'],
+
+  'clients:read': ['admin', 'manager'],
+  'clients:manage': ['admin'],
 }
 
 export function hasPermission(

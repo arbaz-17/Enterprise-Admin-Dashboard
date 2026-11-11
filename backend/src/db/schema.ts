@@ -152,3 +152,17 @@ export const employees = appPrivate.table('employees', {
 
 export type Employee = typeof employees.$inferSelect
 export type NewEmployee = typeof employees.$inferInsert
+
+
+export const clients = appPrivate.table('clients', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  contactName: text('contact_name'),
+  contactEmail: text('contact_email'),
+  status: text('status', { enum: ['active', 'inactive'] }).notNull().default('active'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type Client = typeof clients.$inferSelect
+export type NewClient = typeof clients.$inferInsert

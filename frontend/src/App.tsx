@@ -9,6 +9,7 @@ import { DashboardPage } from "@/pages/dashboard-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { DepartmentsPage } from "@/pages/departments-page";
 import { EmployeesPage } from "@/pages/employees-page";
+import { ClientsPage } from "@/pages/clients-page";
 
 export default function App() {
   return (
@@ -36,6 +37,10 @@ export default function App() {
             element={<ProtectedRoute requiredPermission="employees:read" />}
           >
             <Route path="employees" element={<EmployeesPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission="clients:read" />}>
+            <Route path="clients" element={<ClientsPage />} />
           </Route>
 
           {/* Accessible to authenticated users */}
