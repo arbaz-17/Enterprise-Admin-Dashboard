@@ -2,6 +2,10 @@
 import {
   LayoutDashboard,
   Settings2,
+  Building2,
+  UsersRound,
+  BriefcaseBusiness,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +33,42 @@ export const navigationGroups: NavigationGroup[] = [
         href: "/",
         icon: LayoutDashboard,
         permission: "dashboard:read",
+      },
+    ],
+  },
+
+{
+  label: "Organization",
+  items: [
+    {
+      label: "Employees",
+      href: "/employees",
+      icon: UsersRound,
+      permission: "employees:read",
+    },
+    {
+      label: "Departments",
+      href: "/departments",
+      icon: Building2,
+      permission: "departments:read",
+    },
+  ],
+},
+
+  {
+    label: 'Operations',
+    items: [
+      {
+        label: 'Projects',
+        href: '/projects',
+        icon: FolderKanban,
+        permission: 'projects:read',
+      },
+      {
+        label: 'Clients',
+        href: '/clients',
+        icon: BriefcaseBusiness,
+        permission: 'clients:read',
       },
     ],
   },

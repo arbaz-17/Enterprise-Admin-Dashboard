@@ -1,10 +1,20 @@
-
 export type UserRole = "admin" | "manager" | "viewer";
 
 export type Permission =
   | "dashboard:read"
   | "users:read"
-  | "users:manage";
+  | "users:manage"
+  | "departments:read"
+  | "departments:manage"
+  | "employees:read"
+  | "employees:manage"
+  | "clients:read"
+  | "clients:manage"
+  | "projects:read"
+  | "projects:create"
+  | "projects:manage"
+  | "projects:delete"
+  | "assignments:manage";
 
 export interface AuthUser {
   id: string;

@@ -134,14 +134,14 @@ export function AppSidebar() {
                          group-data-[collapsible=icon]:hidden"
             >
               <p className="truncate text-[15px] font-bold">
-                Enterprise
+                OptimusFox - PMS
               </p>
 
               <p
                 className="text-[11px] font-medium
                            text-[var(--sidebar-muted)]"
               >
-                Admin Console
+                Dashboard
               </p>
             </div>
           </NavLink>
