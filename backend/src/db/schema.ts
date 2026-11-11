@@ -93,6 +93,38 @@ export const refreshSessions = appPrivate.table(
   ]
 )
 
+
+
+export const departments = appPrivate.table(
+  'departments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    name: text('name').notNull(),
+
+    description: text('description'),
+
+    headEmployeeId: uuid('head_employee_id'),
+
+    createdAt: timestamp('created_at', {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp('updated_at', {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  }
+)
+
+export type Department = typeof departments.$inferSelect
+export type NewDepartment = typeof departments.$inferInsert
+
+
+
 export type RefreshSession =
   typeof refreshSessions.$inferSelect
 

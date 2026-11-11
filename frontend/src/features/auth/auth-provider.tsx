@@ -6,6 +6,7 @@ import { apiClient, getAccessToken, setAccessToken } from "@/lib/api-client";
 
 import { authApi, restoreSession } from "./auth-api";
 import { AuthContext, type AuthStatus } from "./auth-context";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type {
   AuthUser,
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [status, setStatus] = useState<AuthStatus>("loading");
 
+  const queryClient = useQueryClient();
+
   const establishSession = useCallback((data: CurrentUserResponse) => {
     setUser(data.user);
     setPermissions(data.permissions);
@@ -36,11 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useCallback(
     (nextStatus: "unauthenticated" | "error") => {
       setAccessToken(null);
+
+      queryClient.clear();
+
       setUser(null);
       setPermissions([]);
       setStatus(nextStatus);
     },
-    [],
+    [queryClient],
   );
 
   const retrySession = useCallback(async () => {

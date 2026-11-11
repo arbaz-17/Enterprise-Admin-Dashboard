@@ -7,11 +7,20 @@ export type Permission =
   | 'dashboard:read'
   | 'users:read'
   | 'users:manage'
+  | 'departments:read'
+  | 'departments:manage'
 
-const permissionRoles: Record<Permission, readonly Role[]> = {
+const permissionRoles: Record<
+  Permission,
+  readonly Role[]
+> = {
   'dashboard:read': ['admin', 'manager', 'viewer'],
+
   'users:read': ['admin', 'manager'],
   'users:manage': ['admin'],
+
+  'departments:read': ['admin', 'manager'],
+  'departments:manage': ['admin'],
 }
 
 export function hasPermission(

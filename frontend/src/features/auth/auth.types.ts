@@ -1,10 +1,14 @@
 
 export type UserRole = "admin" | "manager" | "viewer";
 
+
 export type Permission =
   | "dashboard:read"
   | "users:read"
-  | "users:manage";
+  | "users:manage"
+  | "departments:read"
+  | "departments:manage";
+
 
 export interface AuthUser {
   id: string;

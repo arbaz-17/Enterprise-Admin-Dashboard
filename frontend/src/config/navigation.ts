@@ -2,6 +2,7 @@
 import {
   LayoutDashboard,
   Settings2,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,19 @@ export const navigationGroups: NavigationGroup[] = [
       },
     ],
   },
+
+{
+  label: "Organization",
+  items: [
+    {
+      label: "Departments",
+      href: "/departments",
+      icon: Building2,
+      permission: "departments:read",
+    },
+  ],
+},
+
 ];
 
 // Account navigation
