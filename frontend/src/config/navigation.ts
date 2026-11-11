@@ -5,6 +5,7 @@ import {
   Building2,
   UsersRound,
   BriefcaseBusiness,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -57,6 +58,12 @@ export const navigationGroups: NavigationGroup[] = [
   {
     label: 'Operations',
     items: [
+      {
+        label: 'Projects',
+        href: '/projects',
+        icon: FolderKanban,
+        permission: 'projects:read',
+      },
       {
         label: 'Clients',
         href: '/clients',

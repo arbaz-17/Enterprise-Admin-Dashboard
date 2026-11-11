@@ -10,6 +10,7 @@ import { SettingsPage } from "@/pages/settings-page";
 import { DepartmentsPage } from "@/pages/departments-page";
 import { EmployeesPage } from "@/pages/employees-page";
 import { ClientsPage } from "@/pages/clients-page";
+import { ProjectsPage } from "@/pages/projects-page";
 
 export default function App() {
   return (
@@ -41,6 +42,12 @@ export default function App() {
 
           <Route element={<ProtectedRoute requiredPermission="clients:read" />}>
             <Route path="clients" element={<ClientsPage />} />
+          </Route>
+
+          <Route
+            element={<ProtectedRoute requiredPermission="projects:read" />}
+          >
+            <Route path="projects" element={<ProjectsPage />} />
           </Route>
 
           {/* Accessible to authenticated users */}

@@ -1,5 +1,4 @@
-
-import { sql } from 'drizzle-orm'
+import { sql } from "drizzle-orm";
 import {
   pgSchema,
   uuid,
@@ -9,38 +8,37 @@ import {
   date,
   check,
   index,
-} from 'drizzle-orm/pg-core'
+  integer,
+} from "drizzle-orm/pg-core";
 
-export const appPrivate = pgSchema('app_private')
+export const appPrivate = pgSchema("app_private");
 
 export const users = appPrivate.table(
-  'users',
+  "users",
   {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
 
-    name: text('name').notNull(),
+    name: text("name").notNull(),
 
-    email: text('email').notNull().unique(),
+    email: text("email").notNull().unique(),
 
-    passwordHash: text('password_hash').notNull(),
+    passwordHash: text("password_hash").notNull(),
 
-    role: text('role', {
-      enum: ['admin', 'manager', 'viewer'],
+    role: text("role", {
+      enum: ["admin", "manager", "viewer"],
     })
       .notNull()
-      .default('viewer'),
+      .default("viewer"),
 
-    isActive: boolean('is_active')
-      .notNull()
-      .default(true),
+    isActive: boolean("is_active").notNull().default(true),
 
-    createdAt: timestamp('created_at', {
+    createdAt: timestamp("created_at", {
       withTimezone: true,
     })
       .notNull()
       .defaultNow(),
 
-    updatedAt: timestamp('updated_at', {
+    updatedAt: timestamp("updated_at", {
       withTimezone: true,
     })
       .notNull()
@@ -48,121 +46,155 @@ export const users = appPrivate.table(
   },
   (table) => [
     check(
-      'users_role_check',
-      sql`${table.role} IN ('admin', 'manager', 'viewer')`
+      "users_role_check",
+      sql`${table.role} IN ('admin', 'manager', 'viewer')`,
     ),
-
-    
-  ]
-)
-
+  ],
+);
 
 export const refreshSessions = appPrivate.table(
-  'refresh_sessions',
+  "refresh_sessions",
   {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
 
-    userId: uuid('user_id')
+    userId: uuid("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: "cascade" }),
 
-    familyId: uuid('family_id').notNull(),
+    familyId: uuid("family_id").notNull(),
 
-    tokenHash: text('token_hash').notNull().unique(),
+    tokenHash: text("token_hash").notNull().unique(),
 
-    expiresAt: timestamp('expires_at', {
+    expiresAt: timestamp("expires_at", {
       withTimezone: true,
     }).notNull(),
 
-    usedAt: timestamp('used_at', {
+    usedAt: timestamp("used_at", {
       withTimezone: true,
     }),
 
-    revokedAt: timestamp('revoked_at', {
+    revokedAt: timestamp("revoked_at", {
       withTimezone: true,
     }),
 
-    createdAt: timestamp('created_at', {
+    createdAt: timestamp("created_at", {
       withTimezone: true,
     })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    index('refresh_sessions_user_id_idx').on(table.userId),
-    index('refresh_sessions_family_id_idx').on(table.familyId),
-  ]
-)
+    index("refresh_sessions_user_id_idx").on(table.userId),
+    index("refresh_sessions_family_id_idx").on(table.familyId),
+  ],
+);
 
+export const departments = appPrivate.table("departments", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
+  name: text("name").notNull(),
 
-export const departments = appPrivate.table(
-  'departments',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
+  description: text("description"),
 
-    name: text('name').notNull(),
+  headEmployeeId: uuid("head_employee_id"),
 
-    description: text('description'),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow(),
 
-    headEmployeeId: uuid('head_employee_id'),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow(),
+});
 
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    })
-      .notNull()
-      .defaultNow(),
+export type Department = typeof departments.$inferSelect;
+export type NewDepartment = typeof departments.$inferInsert;
 
-    updatedAt: timestamp('updated_at', {
-      withTimezone: true,
-    })
-      .notNull()
-      .defaultNow(),
-  }
-)
-
-export type Department = typeof departments.$inferSelect
-export type NewDepartment = typeof departments.$inferInsert
-
-
-
-export type RefreshSession =
-  typeof refreshSessions.$inferSelect
-
+export type RefreshSession = typeof refreshSessions.$inferSelect;
 
 // Inferred TypeScript types
-export type User = typeof users.$inferSelect
-export type NewUser = typeof users.$inferInsert
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 
 // Matches the app_private.employees table created in Supabase SQL Editor.
-export const employees = appPrivate.table('employees', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  fullName: text('full_name').notNull(),
-  workEmail: text('work_email').notNull(),
-  designation: text('designation').notNull(),
-  departmentId: uuid('department_id').notNull()
-    .references(() => departments.id, { onDelete: 'restrict' }),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-  status: text('status', { enum: ['active', 'on_leave', 'inactive'] })
-    .notNull().default('active'),
-  joiningDate: date('joining_date', { mode: 'string' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const employees = appPrivate.table("employees", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fullName: text("full_name").notNull(),
+  workEmail: text("work_email").notNull(),
+  designation: text("designation").notNull(),
+  departmentId: uuid("department_id")
+    .notNull()
+    .references(() => departments.id, { onDelete: "restrict" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  status: text("status", { enum: ["active", "on_leave", "inactive"] })
+    .notNull()
+    .default("active"),
+  joiningDate: date("joining_date", { mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
-export type Employee = typeof employees.$inferSelect
-export type NewEmployee = typeof employees.$inferInsert
+export type Employee = typeof employees.$inferSelect;
+export type NewEmployee = typeof employees.$inferInsert;
 
+export const clients = appPrivate.table("clients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  status: text("status", { enum: ["active", "inactive"] })
+    .notNull()
+    .default("active"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
-export const clients = appPrivate.table('clients', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  contactName: text('contact_name'),
-  contactEmail: text('contact_email'),
-  status: text('status', { enum: ['active', 'inactive'] }).notNull().default('active'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export type Client = typeof clients.$inferSelect;
+export type NewClient = typeof clients.$inferInsert;
 
-export type Client = typeof clients.$inferSelect
-export type NewClient = typeof clients.$inferInsert
+// Maps the existing app_private.projects table created in Supabase.
+export const projects = appPrivate.table("projects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "restrict" }),
+  managerEmployeeId: uuid("manager_employee_id").references(
+    () => employees.id,
+    { onDelete: "restrict" },
+  ),
+  status: text("status", {
+    enum: ["planning", "active", "on_hold", "completed"],
+  })
+    .notNull()
+    .default("planning"),
+  priority: text("priority", { enum: ["low", "medium", "high"] })
+    .notNull()
+    .default("medium"),
+  progress: integer("progress").notNull().default(0),
+  startDate: date("start_date", { mode: "string" }),
+  dueDate: date("due_date", { mode: "string" }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
