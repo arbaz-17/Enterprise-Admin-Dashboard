@@ -17,6 +17,7 @@ export type Permission =
   | 'projects:create'
   | 'projects:manage'
   | 'projects:delete'
+  | 'assignments:manage'
 
 const permissionRoles: Record<
   Permission,
@@ -40,6 +41,8 @@ const permissionRoles: Record<
   'projects:create': ['admin'],
   'projects:manage': ['admin', 'manager'],
   'projects:delete': ['admin'],
+
+  'assignments:manage': ['admin', 'manager'],
 }
 
 export function hasPermission(

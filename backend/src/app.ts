@@ -20,6 +20,7 @@ import { departmentsRouter } from './routes/departments.js'
 import { employeesRouter } from './routes/employees.js'
 import { clientsRouter } from './routes/clients.js'
 import { projectsRouter } from './routes/projects.js'
+import { projectAssignmentsRouter } from './routes/project-assignments.js'
 
 
 export const app = express()
@@ -72,6 +73,7 @@ app.use('/api/users', usersRouter)
 app.use('/api/departments', departmentsRouter)
 app.use('/api/employees', employeesRouter)
 app.use('/api/clients', clientsRouter)
+app.use('/api/projects/:projectId/assignments', projectAssignmentsRouter)
 app.use('/api/projects', projectsRouter)
 
 // 404 handler (after all API routes)

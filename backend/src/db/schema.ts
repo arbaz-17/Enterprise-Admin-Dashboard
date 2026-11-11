@@ -198,3 +198,16 @@ export const projects = appPrivate.table("projects", {
 
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+
+
+export const projectAssignments = appPrivate.table('project_assignments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').notNull()
+    .references(() => projects.id, { onDelete: 'restrict' }),
+  employeeId: uuid('employee_id').notNull()
+    .references(() => employees.id, { onDelete: 'restrict' }),
+  assignedAt: timestamp('assigned_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type ProjectAssignment = typeof projectAssignments.$inferSelect
+export type NewProjectAssignment = typeof projectAssignments.$inferInsert

@@ -11,6 +11,7 @@ import { DepartmentsPage } from "@/pages/departments-page";
 import { EmployeesPage } from "@/pages/employees-page";
 import { ClientsPage } from "@/pages/clients-page";
 import { ProjectsPage } from "@/pages/projects-page";
+import { ProjectTeamPage } from "@/pages/project-team-page";
 
 export default function App() {
   return (
@@ -44,10 +45,9 @@ export default function App() {
             <Route path="clients" element={<ClientsPage />} />
           </Route>
 
-          <Route
-            element={<ProtectedRoute requiredPermission="projects:read" />}
-          >
+          <Route element={<ProtectedRoute requiredPermission="projects:read" />}>
             <Route path="projects" element={<ProjectsPage />} />
+            <Route path="projects/:projectId/team" element={<ProjectTeamPage />} />
           </Route>
 
           {/* Accessible to authenticated users */}

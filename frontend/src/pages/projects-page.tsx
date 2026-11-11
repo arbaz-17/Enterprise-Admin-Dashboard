@@ -1,6 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router";
-import { FolderKanban, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Link, useSearchParams } from "react-router";
+import {
+  FolderKanban,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -388,6 +396,23 @@ export function ProjectsPage() {
                             {project.description}
                           </p>
                         )}
+                        <Button
+                          asChild
+                          variant="link"
+                          size="sm"
+                          className="mt-1 h-auto px-0 text-xs"
+                        >
+                          <Link
+                            to={`/projects/${project.id}/team`}
+                            aria-label={`View team for ${project.name}`}
+                          >
+                            <UsersRound
+                              className="size-3.5"
+                              aria-hidden="true"
+                            />{" "}
+                            View team
+                          </Link>
+                        </Button>
                       </TableCell>
                       <TableCell className="min-w-32 text-muted-foreground">
                         {project.clientName}

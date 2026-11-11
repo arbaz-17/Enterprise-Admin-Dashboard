@@ -1,6 +1,4 @@
-
 export type UserRole = "admin" | "manager" | "viewer";
-
 
 export type Permission =
   | "dashboard:read"
@@ -15,8 +13,8 @@ export type Permission =
   | "projects:read"
   | "projects:create"
   | "projects:manage"
-  | "projects:delete";
-
+  | "projects:delete"
+  | "assignments:manage";
 
 export interface AuthUser {
   id: string;
