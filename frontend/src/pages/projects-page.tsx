@@ -1,17 +1,10 @@
-import { useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router";
-import {
-  FolderKanban,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router";
+import { FolderKanban, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { DataTable } from "@/components/dashboard/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -33,17 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
+
 import { ProjectFormDialog } from "@/features/projects/project-form-dialog";
+import {
+  getProjectColumns,
+  statusLabels,
+} from "@/features/projects/project-columns";
 import { ProjectProgressDialog } from "@/features/projects/project-progress-dialog";
 import {
   useCreateProject,
@@ -60,54 +51,21 @@ import type {
 } from "@/features/projects/projects.types";
 
 const PAGE_SIZE = 10;
+
 const STATUSES: ProjectStatus[] = [
   "planning",
   "active",
   "on_hold",
   "completed",
 ];
+
 const PRIORITIES: ProjectPriority[] = ["low", "medium", "high"];
 
 type Editor = { mode: "create" } | { mode: "edit"; project: Project } | null;
 
-const statusLabels: Record<ProjectStatus, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On hold",
-  completed: "Completed",
-};
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
-}
-
-function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
-  return (
-    <Badge
-      variant={
-        status === "completed"
-          ? "secondary"
-          : status === "on_hold"
-            ? "destructive"
-            : "outline"
-      }
-    >
-      {statusLabels[status]}
-    </Badge>
-  );
-}
-
 export function ProjectsPage() {
   const { hasPermission, user } = useAuth();
+
   const canCreate = hasPermission("projects:create");
   const canDelete = hasPermission("projects:delete");
   const canManage = hasPermission("projects:manage");
@@ -117,15 +75,21 @@ export function ProjectsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Project | null>(null);
 
+  // URL-based pagination and filtering
   const rawPage = Number(params.get("page") ?? "1");
+
   const page =
     Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 100000
       ? rawPage
       : 1;
+
   const q = (params.get("q") ?? "").trim().slice(0, 100);
+
   const status = STATUSES.find((item) => item === params.get("status"));
+
   const priority = PRIORITIES.find((item) => item === params.get("priority"));
 
+  // Data fetching
   const { data, isPending, isError, isFetching, error, refetch } = useProjects({
     page,
     pageSize: PAGE_SIZE,
@@ -133,46 +97,68 @@ export function ProjectsPage() {
     status,
     priority,
   });
+
   const create = useCreateProject();
   const update = useUpdateProject();
   const remove = useDeleteProject();
 
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
-    else next.delete(key);
+
+    if (value) {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
+
     next.delete("page");
     setParams(next);
   }
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     const term = String(new FormData(event.currentTarget).get("q") ?? "")
       .trim()
       .slice(0, 100);
+
     setFilter("q", term);
   }
 
   function goToPage(nextPage: number) {
     const next = new URLSearchParams(params);
-    if (nextPage <= 1) next.delete("page");
-    else next.set("page", String(nextPage));
+
+    if (nextPage <= 1) {
+      next.delete("page");
+    } else {
+      next.set("page", String(nextPage));
+    }
+
     setParams(next);
   }
 
+  // Admin: full project management
   async function handleAdminSave(payload: ProjectInput): Promise<void> {
-    if (!isAdmin || !editor)
+    if (!isAdmin || !editor) {
       throw new Error("Only Admins can manage project details");
+    }
+
     if (editor.mode === "create") {
       await create.mutateAsync(payload);
       toast.success("Project created successfully");
     } else {
-      await update.mutateAsync({ id: editor.project.id, payload });
+      await update.mutateAsync({
+        id: editor.project.id,
+        payload,
+      });
+
       toast.success("Project updated successfully");
     }
+
     setEditor(null);
   }
 
+  // Manager: assigned project status and progress only
   async function handleManagerSave(payload: ProjectStatusInput): Promise<void> {
     if (
       !canManage ||
@@ -182,27 +168,48 @@ export function ProjectsPage() {
     ) {
       throw new Error("You can only update projects assigned to you");
     }
-    await update.mutateAsync({ id: editor.project.id, payload });
+
+    await update.mutateAsync({
+      id: editor.project.id,
+      payload,
+    });
+
     toast.success("Project progress updated");
     setEditor(null);
   }
 
   async function handleDelete() {
-    if (!canDelete || !deleting || remove.isPending) return;
+    if (!canDelete || !deleting || remove.isPending) {
+      return;
+    }
+
     try {
       await remove.mutateAsync(deleting.id);
+
       toast.success("Project deleted successfully");
       setDeleting(null);
-      if (data?.data.length === 1 && page > 1) goToPage(page - 1);
+
+      if (data?.data.length === 1 && page > 1) {
+        goToPage(page - 1);
+      }
     } catch (cause) {
       toast.error(getApiErrorMessage(cause));
     }
   }
 
   const total = data?.pagination.total ?? 0;
-  const totalPages = data?.pagination.totalPages ?? 0;
-  const start = data?.data.length ? (page - 1) * PAGE_SIZE + 1 : 0;
-  const end = data?.data.length ? start + data.data.length - 1 : 0;
+
+  // Feature-specific columns; reusable table rendering.
+  const columns = useMemo(
+    () =>
+      getProjectColumns({
+        canManage,
+        canDelete,
+        onEdit: (project) => setEditor({ mode: "edit", project }),
+        onDelete: setDeleting,
+      }),
+    [canManage, canDelete],
+  );
 
   return (
     <>
@@ -216,7 +223,8 @@ export function ProjectsPage() {
                 type="button"
                 onClick={() => setEditor({ mode: "create" })}
               >
-                <Plus aria-hidden="true" /> Add project
+                <Plus aria-hidden="true" />
+                Add project
               </Button>
             ) : (
               <Badge variant="outline">
@@ -225,18 +233,22 @@ export function ProjectsPage() {
             )
           }
         />
+
         <Card className="min-w-0">
           <CardHeader>
             <CardTitle>
               <h2 className="text-base font-semibold">Project directory</h2>
             </CardTitle>
+
             <CardDescription>
               {data
                 ? `${total} project${total === 1 ? "" : "s"} found`
                 : "Browse company projects"}
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-5">
+            {/* Search and filters */}
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <form
                 role="search"
@@ -247,10 +259,12 @@ export function ProjectsPage() {
                   <label htmlFor="project-search" className="sr-only">
                     Search project or client
                   </label>
+
                   <Search
                     className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                     aria-hidden="true"
                   />
+
                   <Input
                     key={q}
                     id="project-search"
@@ -262,7 +276,9 @@ export function ProjectsPage() {
                     className="h-10 pl-9"
                   />
                 </div>
+
                 <Button type="submit">Search</Button>
+
                 {q && (
                   <Button
                     type="button"
@@ -275,14 +291,17 @@ export function ProjectsPage() {
                   </Button>
                 )}
               </form>
+
+              {/* Status filter */}
               <div className="w-full sm:w-44">
                 <label className="sr-only" htmlFor="project-status-filter">
                   Filter projects by status
                 </label>
+
                 <Select
                   value={status ?? "all"}
-                  onValueChange={(v) =>
-                    setFilter("status", v === "all" ? "" : v)
+                  onValueChange={(value) =>
+                    setFilter("status", value === "all" ? "" : value)
                   }
                 >
                   <SelectTrigger
@@ -291,8 +310,10 @@ export function ProjectsPage() {
                   >
                     <SelectValue />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem value="all">All statuses</SelectItem>
+
                     {STATUSES.map((value) => (
                       <SelectItem key={value} value={value}>
                         {statusLabels[value]}
@@ -301,14 +322,17 @@ export function ProjectsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Priority filter */}
               <div className="w-full sm:w-44">
                 <label className="sr-only" htmlFor="project-priority-filter">
                   Filter projects by priority
                 </label>
+
                 <Select
                   value={priority ?? "all"}
-                  onValueChange={(v) =>
-                    setFilter("priority", v === "all" ? "" : v)
+                  onValueChange={(value) =>
+                    setFilter("priority", value === "all" ? "" : value)
                   }
                 >
                   <SelectTrigger
@@ -317,8 +341,10 @@ export function ProjectsPage() {
                   >
                     <SelectValue />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem value="all">All priorities</SelectItem>
+
                     {PRIORITIES.map((value) => (
                       <SelectItem key={value} value={value}>
                         {value[0].toUpperCase() + value.slice(1)}
@@ -329,6 +355,7 @@ export function ProjectsPage() {
               </div>
             </div>
 
+            {/* Table content */}
             {isPending ? (
               <LoadingState message="Loading projects..." />
             ) : isError ? (
@@ -368,164 +395,23 @@ export function ProjectsPage() {
                 }
               />
             ) : (
-              <Table aria-label="Projects">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Manager</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Due date</TableHead>
-                    {(canManage || canDelete) && (
-                      <TableHead className="text-right">Actions</TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.data.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="min-w-44 font-medium">
-                        <div>{project.name}</div>
-                        {project.description && (
-                          <p
-                            className="mt-1 max-w-[230px] truncate text-xs text-muted-foreground"
-                            title={project.description}
-                          >
-                            {project.description}
-                          </p>
-                        )}
-                        <Button
-                          asChild
-                          variant="link"
-                          size="sm"
-                          className="mt-1 h-auto px-0 text-xs"
-                        >
-                          <Link
-                            to={`/projects/${project.id}/team`}
-                            aria-label={`View team for ${project.name}`}
-                          >
-                            <UsersRound
-                              className="size-3.5"
-                              aria-hidden="true"
-                            />{" "}
-                            View team
-                          </Link>
-                        </Button>
-                      </TableCell>
-                      <TableCell className="min-w-32 text-muted-foreground">
-                        {project.clientName}
-                      </TableCell>
-                      <TableCell className="min-w-32 text-muted-foreground">
-                        {project.managerName || "Unassigned"}
-                      </TableCell>
-                      <TableCell>
-                        <ProjectStatusBadge status={project.status} />
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {project.priority}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex min-w-20 items-center gap-2">
-                          <div
-                            className="h-1.5 w-16 rounded-full bg-muted"
-                            aria-hidden="true"
-                          >
-                            <div
-                              className="h-full rounded-full bg-primary"
-                              style={{ width: `${project.progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs tabular-nums">
-                            {project.progress}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {formatDate(project.dueDate)}
-                      </TableCell>
-                      {(canManage || canDelete) && (
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {project.canEdit && canManage && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Edit ${project.name}`}
-                                onClick={() =>
-                                  setEditor({ mode: "edit", project })
-                                }
-                              >
-                                <Pencil className="size-4" aria-hidden="true" />
-                              </Button>
-                            )}
-                            {canDelete && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Delete ${project.name}`}
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleting(project)}
-                              >
-                                <Trash2 className="size-4" aria-hidden="true" />
-                              </Button>
-                            )}
-                            {!project.canEdit && !canDelete && (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-
-            {data && total > 0 && (
-              <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {start
-                    ? `Showing ${start}–${end} of ${total}`
-                    : `Showing 0 of ${total}`}
-                </p>
-                <nav
-                  aria-label="Project pages"
-                  className="flex items-center gap-3"
-                >
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={page <= 1 || isFetching}
-                    onClick={() => goToPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={page >= totalPages || isFetching}
-                    onClick={() => goToPage(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </nav>
-              </div>
+              <DataTable
+                columns={columns}
+                data={data.data}
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={total}
+                onPageChange={goToPage}
+                tableLabel="Projects"
+                getRowId={(project) => project.id}
+                isFetching={isFetching}
+              />
             )}
           </CardContent>
         </Card>
       </div>
 
+      {/* Admin create/edit dialog */}
       {editor && isAdmin && (
         <ProjectFormDialog
           key={editor.mode === "create" ? "create" : editor.project.id}
@@ -537,6 +423,8 @@ export function ProjectsPage() {
           onSave={handleAdminSave}
         />
       )}
+
+      {/* Manager status/progress dialog */}
       {editor?.mode === "edit" && !isAdmin && editor.project.canEdit && (
         <ProjectProgressDialog
           key={editor.project.id}
@@ -548,6 +436,8 @@ export function ProjectsPage() {
           onSave={handleManagerSave}
         />
       )}
+
+      {/* Delete confirmation */}
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => {
