@@ -1,4 +1,3 @@
-
 import {
   LayoutDashboard,
   Settings2,
@@ -23,7 +22,12 @@ export interface NavigationGroup {
   items: NavigationItem[];
 }
 
-// Main application navigation
+export interface NavigationBreadcrumb {
+  label: string;
+  href?: string;
+}
+
+// Main application navigation, shared by the sidebar and top-bar breadcrumbs.
 export const navigationGroups: NavigationGroup[] = [
   {
     label: "Workspace",
@@ -36,45 +40,43 @@ export const navigationGroups: NavigationGroup[] = [
       },
     ],
   },
-
-{
-  label: "Organization",
-  items: [
-    {
-      label: "Employees",
-      href: "/employees",
-      icon: UsersRound,
-      permission: "employees:read",
-    },
-    {
-      label: "Departments",
-      href: "/departments",
-      icon: Building2,
-      permission: "departments:read",
-    },
-  ],
-},
-
   {
-    label: 'Operations',
+    label: "Organization",
     items: [
       {
-        label: 'Projects',
-        href: '/projects',
-        icon: FolderKanban,
-        permission: 'projects:read',
+        label: "Employees",
+        href: "/employees",
+        icon: UsersRound,
+        permission: "employees:read",
       },
       {
-        label: 'Clients',
-        href: '/clients',
+        label: "Departments",
+        href: "/departments",
+        icon: Building2,
+        permission: "departments:read",
+      },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      {
+        label: "Projects",
+        href: "/projects",
+        icon: FolderKanban,
+        permission: "projects:read",
+      },
+      {
+        label: "Clients",
+        href: "/clients",
         icon: BriefcaseBusiness,
-        permission: 'clients:read',
+        permission: "clients:read",
       },
     ],
   },
 ];
 
-// Account navigation
+// Account navigation (sign-out is an action handled by AppSidebar, not a route).
 export const accountNavigation: NavigationItem[] = [
   {
     label: "Settings",
@@ -83,46 +85,47 @@ export const accountNavigation: NavigationItem[] = [
   },
 ];
 
-// Supports exact and nested route matching
-export function isNavigationActive(
-  pathname: string,
-  href: string
-): boolean {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return (
-    pathname === href ||
-    pathname.startsWith(`${href}/`)
-  );
+export function isNavigationActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Shared page metadata for the header
+// Shared page metadata for existing consumers.
 export function findNavigationItem(pathname: string) {
   for (const group of navigationGroups) {
     const item = group.items.find((entry) =>
-      isNavigationActive(pathname, entry.href)
+      isNavigationActive(pathname, entry.href),
     );
 
-    if (item) {
-      return {
-        group: group.label,
-        item,
-      };
-    }
+    if (item) return { group: group.label, item };
   }
 
   const accountItem = accountNavigation.find((entry) =>
-    isNavigationActive(pathname, entry.href)
+    isNavigationActive(pathname, entry.href),
   );
 
-  if (accountItem) {
-    return {
-      group: "Account",
-      item: accountItem,
-    };
+  if (accountItem) return { group: "Account", item: accountItem };
+  return null;
+}
+
+/**
+ * Build meaningful breadcrumbs for known routes without displaying raw IDs.
+ * `/projects/:projectId/team` is currently the only nested content route.
+ */
+export function getNavigationBreadcrumbs(
+  pathname: string,
+): NavigationBreadcrumb[] {
+  const page = findNavigationItem(pathname);
+  if (!page) return [{ label: "Workspace" }];
+
+  const breadcrumbs: NavigationBreadcrumb[] = [{ label: page.group }];
+
+  if (/^\/projects\/[^/]+\/team\/?$/.test(pathname)) {
+    breadcrumbs.push({ label: "Projects", href: "/projects" });
+    breadcrumbs.push({ label: "Project team" });
+  } else {
+    breadcrumbs.push({ label: page.item.label });
   }
 
-  return null;
+  return breadcrumbs;
 }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useForm } from "react-hook-form";
@@ -10,61 +9,113 @@ import {
   Eye,
   EyeOff,
   LoaderCircle,
-  PanelsTopLeft,
   ShieldCheck,
+  UsersRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ModeToggle } from "@/components/theme/mode-toggle";
-
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 
 // Match the existing backend login validation rules.
 const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email("Enter a valid email address"),
-
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   password: z
     .string()
     .min(1, "Password is required")
     .refine(
       (value) => new TextEncoder().encode(value).length <= 72,
-      "Password must be 72 UTF-8 bytes or fewer"
+      "Password must be 72 UTF-8 bytes or fewer",
     ),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// These are DEMO-ONLY accounts, not production credentials.
+// This section is enabled during local development, or in a demo build
+// when VITE_ENABLE_DEMO_LOGIN=true is provided at build time.
+const showDemoAccounts =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true";
+
+const demoAccounts = [
+  {
+    role: "Admin",
+    email: "admin@example.test",
+    password: "Arbaz@20262026",
+    icon: ShieldCheck,
+  },
+  {
+    role: "Manager",
+    email: "manager@example.test",
+    password: "Peter@20262026",
+    icon: UsersRound,
+  },
+  {
+    role: "Viewer",
+    email: "viewer@example.test",
+    password: "Harry@20262026",
+    icon: Eye,
+  },
+] as const;
+
+function BrandLogoPlaceholder() {
+  return (
+    <div
+      className="mx-auto flex size-32 items-center justify-center rounded-[30px]
+                 border border-primary/25 bg-primary/10
+                 shadow-[0_20px_80px_-30px_rgba(254,104,7,0.45)]"
+    >
+      {/* Replace this placeholder SVG with the actual Optimus Fox logo later. */}
+      <svg
+        viewBox="0 0 96 96"
+        fill="none"
+        aria-label="Optimus Fox logo placeholder"
+        role="img"
+        className="size-20 text-primary"
+      >
+        <path
+          d="M14 18L33 35L48 26L63 35L82 18L76 65L48 84L20 65L14 18Z"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M22 43L39 52L48 68L57 52L74 43"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M41 72L48 77L55 72"
+          stroke="white"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export function LoginPage() {
   const { login, status } = useAuth();
   const location = useLocation();
-
   const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
+    reset,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
-  // Stage 4 will pass the originally requested protected route.
-  const requestedPath = (location.state as {
-    from?: unknown;
-  } | null)?.from;
-
+  const requestedPath = (location.state as { from?: unknown } | null)?.from;
   const redirectTo =
     typeof requestedPath === "string" &&
     requestedPath.startsWith("/") &&
@@ -76,8 +127,7 @@ export function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     try {
       await login(values);
-      // AuthProvider updates status to "authenticated".
-      // The Navigate below handles the redirect.
+      // AuthProvider updates status; the Navigate below redirects the user.
     } catch (error) {
       setError("root.server", {
         type: "server",
@@ -86,140 +136,106 @@ export function LoginPage() {
     }
   }
 
-  // Wait until session restoration finishes.
+  function fillDemoCredentials(account: (typeof demoAccounts)[number]) {
+    // reset updates both fields and clears previous validation/server errors.
+    reset({ email: account.email, password: account.password });
+    setShowPassword(false);
+  }
+
   if (status === "loading") {
     return (
       <main
-        className="flex min-h-dvh items-center justify-center
-                   gap-3 bg-background text-muted-foreground"
+        className="flex min-h-dvh items-center justify-center gap-3
+                   bg-background text-muted-foreground"
         role="status"
         aria-live="polite"
       >
-        <LoaderCircle
-          className="size-5 animate-spin"
-          aria-hidden="true"
-        />
+        <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
         <span className="text-sm">Checking your session...</span>
       </main>
     );
   }
 
-  // Already authenticated? Skip login.
   if (status === "authenticated") {
     return <Navigate to={redirectTo} replace />;
   }
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
-      {/* Left: brand panel, desktop only */}
+      {/* Left: intentionally simple, centered product branding. */}
       <aside
-        className="hidden flex-col justify-between
-                   bg-[#111116] p-10 text-white
-                   lg:flex xl:p-14"
+        className="relative isolate hidden min-h-dvh items-center justify-center
+                   overflow-hidden bg-[#111116] px-12 py-16 text-white lg:flex"
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex size-11 items-center justify-center
-                       rounded-xl bg-primary text-primary-foreground"
-          >
-            <PanelsTopLeft className="size-5" />
-          </div>
+        {/* Subtle visual texture. Uses the existing orange brand color. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.055]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
+            backgroundSize: "52px 52px",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-44 -left-52 size-[470px]
+                     rounded-full bg-primary/10 blur-[110px]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-48 -bottom-44 size-[500px]
+                     rounded-full bg-primary/10 blur-[120px]"
+        />
 
-          <div>
-            <p className="text-base font-semibold">Enterprise</p>
-            <p className="text-xs text-white/55">
-              Admin Console
+        <div className="relative z-10 w-full max-w-lg text-center">
+          <BrandLogoPlaceholder />
+
+          <div className="mt-10 space-y-3">
+            <h2 className="text-4xl font-semibold tracking-tight xl:text-5xl">
+              Optimus <span className="text-primary">Fox</span>
+            </h2>
+            <p className="text-sm font-medium tracking-[0.2em] text-white/70 uppercase">
+              Project Management System
             </p>
           </div>
-        </div>
 
-        <div className="max-w-lg space-y-6">
           <div
-            className="h-1 w-14 rounded-full bg-primary"
+            className="mx-auto mt-9 h-px w-20 bg-primary/70"
             aria-hidden="true"
           />
 
-          <h2
-            className="text-4xl leading-tight font-semibold
-                       tracking-tight xl:text-5xl"
-          >
-            One workspace.
-            <br />
-            Complete clarity.
-          </h2>
-
-          <p className="max-w-md text-base leading-7 text-white/60">
-            A central place for managing your organization,
-            teams, projects, and business operations.
+          <p className="mx-auto mt-8 max-w-sm text-lg font-medium leading-8 text-white/85">
+            Plan with purpose. Deliver with clarity.
           </p>
-
-          <div
-            className="flex items-start gap-3 border-t
-                       border-white/10 pt-6"
-          >
-            <ShieldCheck
-              className="mt-0.5 size-5 shrink-0 text-primary"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-sm font-medium">
-                Secure workspace access
-              </p>
-              <p className="mt-1 text-xs leading-5 text-white/50">
-                Access is managed through your organization's
-                authentication and authorization system.
-              </p>
-            </div>
-          </div>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-7 text-white/50">
+            Keep your projects, people, and progress connected in one
+            streamlined workspace.
+          </p>
         </div>
-
-        <p className="text-xs text-white/40">
-          Enterprise Administration Dashboard
-        </p>
       </aside>
 
-      {/* Right: login form */}
-      <section
-        className="flex min-h-dvh flex-col
-                   px-6 py-6 sm:px-10 lg:px-14"
-      >
-        <div className="flex items-center justify-between lg:justify-end">
-          {/* Mobile brand */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div
-              className="flex size-9 items-center justify-center
-                         rounded-lg bg-primary text-primary-foreground"
-            >
-              <PanelsTopLeft className="size-5" />
-            </div>
-            <span className="text-sm font-semibold">
-              Enterprise
-            </span>
-          </div>
-
-          <ModeToggle />
+      {/* Right: login form and optional demo account selection. */}
+      <section className="flex min-h-dvh flex-col bg-background px-6 py-8 sm:px-10 lg:px-14">
+        {/* Small-screen branding, without the removed icon or theme toggle. */}
+        <div className="lg:hidden">
+          <p className="text-base font-semibold tracking-tight">
+            Optimus <span className="text-primary">Fox</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Project Management System
+          </p>
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-12">
-          <div className="w-full max-w-[420px]">
-            <div className="mb-9 space-y-3">
-              <p
-                className="text-xs font-semibold tracking-widest
-                           text-primary uppercase"
-              >
-                Workspace access
-              </p>
-
-              <h1
-                className="text-3xl font-semibold tracking-tight
-                           sm:text-4xl"
-              >
+        <div className="flex flex-1 items-center justify-center py-10 lg:py-12">
+          <div className="w-full max-w-[430px]">
+            <div className="mb-8 space-y-3">
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                 Welcome back
               </h1>
-
               <p className="text-sm leading-6 text-muted-foreground">
-                Enter your credentials to sign in to the
-                Enterprise Admin Console.
+                Sign in to manage your projects, collaborate with your team, and
+                stay on top of what matters.
               </p>
             </div>
 
@@ -228,12 +244,8 @@ export function LoginPage() {
               noValidate
               className="space-y-5"
             >
-              {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="login-email">
-                  Email address
-                </Label>
-
+                <Label htmlFor="login-email">Email address</Label>
                 <Input
                   id="login-email"
                   type="email"
@@ -249,7 +261,6 @@ export function LoginPage() {
                   className="h-11"
                   {...register("email")}
                 />
-
                 {errors.email && (
                   <p
                     id="login-email-error"
@@ -261,12 +272,8 @@ export function LoginPage() {
                 )}
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="login-password">
-                  Password
-                </Label>
-
+                <Label htmlFor="login-password">Password</Label>
                 <div className="relative">
                   <Input
                     id="login-password"
@@ -276,41 +283,32 @@ export function LoginPage() {
                     disabled={isSubmitting}
                     aria-invalid={!!errors.password}
                     aria-describedby={
-                      errors.password
-                        ? "login-password-error"
-                        : undefined
+                      errors.password ? "login-password-error" : undefined
                     }
                     className="h-11 pr-12"
                     {...register("password")}
                   />
-
                   <button
                     type="button"
                     disabled={isSubmitting}
                     aria-label={
-                      showPassword
-                        ? "Hide password"
-                        : "Show password"
+                      showPassword ? "Hide password" : "Show password"
                     }
                     aria-pressed={showPassword}
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-1
-                               flex size-10 items-center justify-center
-                               rounded-md text-muted-foreground
-                               hover:text-foreground
-                               focus-visible:outline-2
-                               focus-visible:outline-offset-2
-                               focus-visible:outline-ring
+                    className="absolute inset-y-0 right-1 flex size-10 items-center
+                               justify-center rounded-md text-muted-foreground
+                               hover:text-foreground focus-visible:outline-2
+                               focus-visible:outline-offset-2 focus-visible:outline-ring
                                disabled:opacity-50"
                   >
                     {showPassword ? (
-                      <EyeOff className="size-4" />
+                      <EyeOff className="size-4" aria-hidden="true" />
                     ) : (
-                      <Eye className="size-4" />
+                      <Eye className="size-4" aria-hidden="true" />
                     )}
                   </button>
                 </div>
-
                 {errors.password && (
                   <p
                     id="login-password-error"
@@ -322,29 +320,23 @@ export function LoginPage() {
                 )}
               </div>
 
-              {/* Backend error */}
               {errors.root?.server && (
                 <div
                   role="alert"
                   className="rounded-lg border border-destructive/30
-                             bg-destructive/5 px-4 py-3
-                             text-sm text-destructive"
+                             bg-destructive/5 px-4 py-3 text-sm text-destructive"
                 >
                   {errors.root.server.message}
                 </div>
               )}
 
               {status === "error" && (
-                <p
-                  role="status"
-                  className="text-xs text-muted-foreground"
-                >
-                  Your previous session could not be verified.
-                  You can try signing in again.
+                <p role="status" className="text-xs text-muted-foreground">
+                  Your previous session could not be verified. You can try
+                  signing in again.
                 </p>
               )}
 
-              {/* Submit */}
               <Button
                 type="submit"
                 size="lg"
@@ -362,29 +354,55 @@ export function LoginPage() {
                 ) : (
                   <>
                     Sign in
-                    <ArrowRight
-                      className="size-4"
-                      aria-hidden="true"
-                    />
+                    <ArrowRight className="size-4" aria-hidden="true" />
                   </>
                 )}
               </Button>
             </form>
 
-            <p
-              className="mt-8 text-center text-xs
-                         leading-5 text-muted-foreground"
-            >
-              Access is restricted to authorized personnel.
-            </p>
+            {showDemoAccounts && (
+              <div className="mt-9 border-t border-border pt-7">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold">Explore demo roles</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Select a role to fill the credentials, then click Sign in.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {demoAccounts.map((account) => {
+                    const Icon = account.icon;
+                    return (
+                      <button
+                        key={account.role}
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => fillDemoCredentials(account)}
+                        aria-label={`Fill ${account.role} demo credentials`}
+                        className="group flex min-h-24 flex-col items-center justify-center
+                                   gap-2 rounded-xl border border-border bg-card px-2 py-3
+                                   text-foreground transition-colors hover:border-primary/50
+                                   hover:bg-accent focus-visible:outline-2
+                                   focus-visible:outline-offset-2 focus-visible:outline-ring
+                                   disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <span
+                          className="flex size-9 items-center justify-center rounded-lg
+                                     bg-primary/10 text-primary transition-colors
+                                     group-hover:bg-primary/15"
+                        >
+                          <Icon className="size-4" aria-hidden="true" />
+                        </span>
+                        <span className="text-xs font-semibold">
+                          {account.role}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        <footer
-          className="text-center text-xs text-muted-foreground"
-        >
-          Enterprise Administration Dashboard
-        </footer>
       </section>
     </main>
   );

@@ -1,177 +1,111 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router";
-
-import { ChevronDown, LoaderCircle, LogOut, UserRound } from "lucide-react";
+import { Link, useLocation } from "react-router";
+import { ChevronRight } from "lucide-react";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/theme/mode-toggle";
-import { toast } from "sonner";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import { findNavigationItem } from "@/config/navigation";
-
+import { getNavigationBreadcrumbs } from "@/config/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { getApiErrorMessage } from "@/lib/api-error";
+
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) return "U";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+}
 
 export function AppHeader() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const breadcrumbs = getNavigationBreadcrumbs(pathname);
 
-  const { user, logout } = useAuth();
-
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [logoutError, setLogoutError] = useState<string | null>(null);
-
-  const currentPage = findNavigationItem(pathname);
-
-  const pageTitle = currentPage?.item.label ?? "Workspace";
-  const pageGroup = currentPage?.group ?? "Navigation";
-
-  async function handleLogout() {
-    if (isLoggingOut) return;
-
-    setIsLoggingOut(true);
-    setLogoutError(null);
-
-    try {
-      await logout();
-
-      toast.success("Signed out successfully");
-
-      navigate("/login", { replace: true });
-    } catch (error) {
-      setLogoutError(getApiErrorMessage(error));
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
+  const displayName = user?.name?.trim() || user?.email || "Account";
+  const displayRole = user?.role
+    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+    : "Member";
 
   return (
-    <>
-      <header
-        className="flex h-16 shrink-0 items-center
-                   justify-between gap-4 border-b px-4 lg:px-6"
-      >
-        {/* Left: sidebar toggle and page title */}
-        <div className="flex min-w-0 items-center gap-3">
-          <SidebarTrigger className="-ml-1" />
+    <header
+      className="sticky top-0 z-30 flex h-16 shrink-0 items-center
+                 justify-between gap-3 border-b border-border/70 md:rounded-t-xl
+                 bg-background/95 px-4 backdrop-blur-md
+                 supports-[backdrop-filter]:bg-background/85 lg:px-6"
+    >
+      {/* Navigation controls + accessible, route-aware breadcrumbs */}
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <SidebarTrigger className="-ml-1 shrink-0" />
+        <Separator orientation="vertical" className="h-5 shrink-0" />
 
-          <Separator orientation="vertical" className="h-4" />
+        <nav aria-label="Breadcrumb" className="min-w-0">
+          <ol className="flex min-w-0 items-center gap-1.5 text-[13px] sm:gap-2">
+            {breadcrumbs.map((crumb, index) => {
+              const isCurrent = index === breadcrumbs.length - 1;
 
-          <nav
-            aria-label="Breadcrumb"
-            className="flex min-w-0 items-center gap-2 text-sm"
-          >
-            <span className="hidden text-muted-foreground sm:inline">
-              {pageGroup}
-            </span>
+              return (
+                <li
+                  key={`${index}-${crumb.label}`}
+                  className={`flex min-w-0 items-center gap-1.5 sm:gap-2 ${index === 0 && !isCurrent ? "hidden sm:flex" : ""}`}
+                >
+                  {index > 0 && (
+                    <ChevronRight
+                      className={`size-3.5 shrink-0 text-muted-foreground/60 ${index === 1 ? "hidden sm:block" : ""}`}
+                      aria-hidden="true"
+                    />
+                  )}
 
-            <span
-              aria-hidden="true"
-              className="hidden text-muted-foreground/50 sm:inline"
-            >
-              /
-            </span>
+                  {crumb.href && !isCurrent ? (
+                    <Link
+                      to={crumb.href}
+                      className="truncate text-muted-foreground transition-colors
+                                 hover:text-foreground focus-visible:rounded-sm
+                                 focus-visible:outline-2 focus-visible:outline-offset-2
+                                 focus-visible:outline-ring"
+                    >
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span
+                      aria-current={isCurrent ? "page" : undefined}
+                      className={
+                        isCurrent
+                          ? "truncate font-semibold text-foreground"
+                          : "truncate text-muted-foreground"
+                      }
+                    >
+                      {crumb.label}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      </div>
 
-            <span
-              className="truncate font-semibold text-foreground"
-              aria-current="page"
-            >
-              {pageTitle}
-            </span>
-          </nav>
-        </div>
+      {/* Theme stays in the top bar. The account's sign-out action is in the sidebar. */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <ModeToggle />
 
-        {/* Right: theme and user account */}
-        <div className="flex shrink-0 items-center gap-2">
-          <ModeToggle />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={isLoggingOut}
-                aria-label="Open account menu"
-                className="gap-2"
-              >
-                {isLoggingOut ? (
-                  <LoaderCircle
-                    className="size-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <UserRound className="size-4" aria-hidden="true" />
-                )}
-
-                <span className="hidden max-w-28 truncate sm:inline">
-                  {user?.name ?? "Account"}
-                </span>
-
-                <ChevronDown
-                  className="hidden size-3 sm:inline"
-                  aria-hidden="true"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="space-y-1">
-                <p className="truncate font-semibold">{user?.name}</p>
-
-                <p className="truncate text-xs font-normal text-muted-foreground">
-                  {user?.email}
-                </p>
-
-                <p className="text-xs font-normal capitalize text-muted-foreground">
-                  {user?.role}
-                </p>
-              </DropdownMenuLabel>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={isLoggingOut}
-                onSelect={() => void handleLogout()}
-              >
-                <LogOut aria-hidden="true" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
-      {logoutError && (
         <div
-          role="alert"
-          className="border-b border-destructive/20
-                     bg-destructive/5 px-4 py-2
-                     text-sm text-destructive"
+          className="flex items-center gap-2 rounded-full border border-border/70
+                     bg-card py-1 pr-1 pl-1 shadow-xs sm:pr-3"
+          title={`${displayName} — ${displayRole}${user?.email ? ` (${user.email})` : ""}`}
         >
-          Sign out failed: {logoutError}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            disabled={isLoggingOut}
-            onClick={() => void handleLogout()}
+          <span
+            aria-hidden="true"
+            className="flex size-7 shrink-0 items-center justify-center
+                       rounded-full bg-secondary text-[10px] font-semibold
+                       tracking-wide text-secondary-foreground"
           >
-            Retry
-          </Button>
+            {getInitials(displayName)}
+          </span>
+          <span className="sr-only sm:not-sr-only sm:max-w-28 sm:truncate sm:text-xs sm:font-medium">
+            {displayName}
+          </span>
         </div>
-      )}
-    </>
+      </div>
+    </header>
   );
 }
