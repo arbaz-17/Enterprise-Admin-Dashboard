@@ -1,32 +1,31 @@
-import { useMemo, useState, type FormEvent } from "react";
-
-import { useSearchParams, Link } from "react-router";
-
-import { Plus, Search, UsersRound, X } from "lucide-react";
-
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router";
+import { Plus, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
+import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
+import { getTableUrlState } from "@/components/dashboard/table-url-state";
+
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useDepartments } from "@/features/departments/departments.queries";
+import { getApiErrorMessage } from "@/lib/api-error";
 
+import { useDepartments } from "@/features/departments/departments.queries";
 import { EmployeeFormDialog } from "@/features/employees/employee-form-dialog";
 import { getEmployeeColumns } from "@/features/employees/employee-columns";
 
@@ -43,10 +42,6 @@ import type {
   EmployeeStatus,
 } from "@/features/employees/employees.types";
 
-import { getApiErrorMessage } from "@/lib/api-error";
-
-const PAGE_SIZE = 10;
-
 const STATUSES: EmployeeStatus[] = ["active", "on_leave", "inactive"];
 
 type Editor = { mode: "create" } | { mode: "edit"; employee: Employee } | null;
@@ -58,33 +53,43 @@ export function EmployeesPage() {
   const [params, setParams] = useSearchParams();
 
   const [editor, setEditor] = useState<Editor>(null);
-
   const [deleting, setDeleting] = useState<Employee | null>(null);
 
-  // URL-based pagination and filters
-  const rawPage = Number(params.get("page") ?? "1");
+  // Shared URL-based table state
+  const tableState = getTableUrlState({
+    params,
+    setParams,
+    sortKeys: [
+      "fullName",
+      "designation",
+      "departmentName",
+      "status",
+      "joiningDate",
+      "linkedUserName",
+    ] as const,
+    defaultSortBy: "fullName",
+  });
 
-  const page =
-    Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 100000
-      ? rawPage
-      : 1;
+  const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
-  const statusValue = params.get("status");
+  const statusParam = params.get("status");
 
-  const status = STATUSES.find((value) => value === statusValue);
+  const status = STATUSES.find((value) => value === statusParam);
 
   const departmentId = params.get("departmentId") || undefined;
 
-  // Server-side data fetching
+  // Queries and mutations
   const { data, isPending, isError, isFetching, error, refetch } = useEmployees(
     {
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
       q: q || undefined,
       status,
       departmentId,
+      sortBy,
+      sortDir,
     },
   );
 
@@ -97,6 +102,9 @@ export function EmployeesPage() {
   const update = useUpdateEmployee();
   const remove = useDeleteEmployee();
 
+  const total = data?.pagination.total ?? 0;
+
+  // Search and filters preserve sorting preferences.
   function updateFilter(key: string, value: string) {
     const next = new URLSearchParams(params);
 
@@ -110,23 +118,11 @@ export function EmployeesPage() {
     setParams(next);
   }
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const term = String(new FormData(event.currentTarget).get("q") ?? "")
-      .trim()
-      .slice(0, 100);
-
-    updateFilter("q", term);
-  }
-
-  function goToPage(nextPage: number) {
+  function clearFilters() {
     const next = new URLSearchParams(params);
 
-    if (nextPage <= 1) {
-      next.delete("page");
-    } else {
-      next.set("page", String(nextPage));
+    for (const key of ["q", "status", "departmentId", "page"]) {
+      next.delete(key);
     }
 
     setParams(next);
@@ -139,6 +135,7 @@ export function EmployeesPage() {
 
     if (editor.mode === "create") {
       await create.mutateAsync(input);
+
       toast.success("Employee created successfully");
     } else {
       await update.mutateAsync({
@@ -172,7 +169,7 @@ export function EmployeesPage() {
     }
   }
 
-  // Feature-specific column definitions
+  // Feature-specific columns
   const columns = useMemo(
     () =>
       getEmployeeColumns({
@@ -189,7 +186,18 @@ export function EmployeesPage() {
     [canManage],
   );
 
-  const total = data?.pagination.total ?? 0;
+  const tableProps = {
+    columns,
+    page,
+    pageSize,
+    total,
+    sorting: tableState.sorting,
+    onSortingChange: tableState.onSortingChange,
+    onPageChange: goToPage,
+    onPageSizeChange: tableState.onPageSizeChange,
+    tableLabel: "Employees",
+    getRowId: (employee: Employee) => employee.id,
+  };
 
   return (
     <>
@@ -226,98 +234,48 @@ export function EmployeesPage() {
           </CardHeader>
 
           <CardContent className="space-y-5">
-            {/* Search and filters */}
-            <div className="flex flex-wrap items-end gap-2">
-              <form
-                role="search"
-                className="flex min-w-48 flex-1 items-end gap-2 sm:max-w-md"
-                onSubmit={handleSearch}
+            <DataTableToolbar
+              searchValue={q}
+              searchLabel="Search employees"
+              placeholder="Name, email or designation..."
+              onSearch={(value) => updateFilter("q", value)}
+              hasActiveFilters={Boolean(q || status || departmentId)}
+              onClear={clearFilters}
+            >
+              {/* Employment status */}
+              <select
+                aria-label="Filter by employment status"
+                value={status ?? ""}
+                onChange={(event) => updateFilter("status", event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <div className="relative min-w-0 flex-1">
-                  <label htmlFor="employee-search" className="sr-only">
-                    Search employees
-                  </label>
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="on_leave">On leave</option>
+                <option value="inactive">Inactive</option>
+              </select>
 
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+              {/* Department */}
+              <select
+                aria-label="Filter by department"
+                value={departmentId ?? ""}
+                onChange={(event) =>
+                  updateFilter("departmentId", event.target.value)
+                }
+                className="h-10 max-w-[200px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <option value="">All departments</option>
 
-                  <Input
-                    key={q}
-                    id="employee-search"
-                    type="search"
-                    name="q"
-                    defaultValue={q}
-                    maxLength={100}
-                    placeholder="Name, email or designation..."
-                    className="h-10 pl-9"
-                  />
-                </div>
+                {departmentsQuery.data?.data.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </DataTableToolbar>
 
-                <Button type="submit">Search</Button>
-              </form>
-
-              {/* Employment status filter */}
-              <div>
-                <label htmlFor="employee-status-filter" className="sr-only">
-                  Filter by employment status
-                </label>
-
-                <select
-                  id="employee-status-filter"
-                  value={status ?? ""}
-                  onChange={(event) =>
-                    updateFilter("status", event.target.value)
-                  }
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  <option value="">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="on_leave">On leave</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-
-              {/* Department filter */}
-              <div>
-                <label htmlFor="employee-department-filter" className="sr-only">
-                  Filter by department
-                </label>
-
-                <select
-                  id="employee-department-filter"
-                  value={departmentId ?? ""}
-                  onChange={(event) =>
-                    updateFilter("departmentId", event.target.value)
-                  }
-                  className="h-10 max-w-[200px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  <option value="">All departments</option>
-
-                  {departmentsQuery.data?.data.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {(q || status || departmentId) && (
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setParams({})}
-                >
-                  <X aria-hidden="true" className="size-4" />
-                  Clear
-                </Button>
-              )}
-            </div>
-
-            {/* Table content */}
             {isPending ? (
-              <LoadingState message="Loading employees..." />
+              <DataTable {...tableProps} data={[]} isLoading />
             ) : isError ? (
               <ErrorState
                 title="Unable to load employees"
@@ -352,21 +310,19 @@ export function EmployeesPage() {
                 title="No employees on this page"
                 description="Return to the first page to see available results."
                 action={
-                  <Button variant="outline" onClick={() => goToPage(1)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => goToPage(1)}
+                  >
                     First page
                   </Button>
                 }
               />
             ) : (
               <DataTable
-                columns={columns}
+                {...tableProps}
                 data={data.data}
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={goToPage}
-                tableLabel="Employees"
-                getRowId={(employee) => employee.id}
                 isFetching={isFetching}
               />
             )}
@@ -374,7 +330,7 @@ export function EmployeesPage() {
         </Card>
       </div>
 
-      {/* Create/edit dialog */}
+      {/* Create / Edit */}
       {editor && (
         <EmployeeFormDialog
           key={editor.mode === "edit" ? editor.employee.id : "create"}

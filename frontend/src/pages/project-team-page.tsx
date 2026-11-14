@@ -5,10 +5,10 @@ import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
+
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 
 import { useAuth } from "@/hooks/use-auth";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 import { AddProjectMemberDialog } from "@/features/team-assignments/add-project-member-dialog";
 import { getTeamMemberColumns } from "@/features/team-assignments/team-member-columns";
@@ -32,28 +33,27 @@ import {
 
 import type { ProjectTeamMember } from "@/features/team-assignments/team-assignments.types";
 
-import { getApiErrorMessage } from "@/lib/api-error";
-
 export function ProjectTeamPage() {
   const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { hasPermission } = useAuth();
 
   const [addOpen, setAddOpen] = useState(false);
+
   const [removing, setRemoving] = useState<ProjectTeamMember | null>(null);
 
-  // Existing API query and mutations
+  // API query and mutations
   const { data, isPending, isError, isFetching, error, refetch } =
     useProjectTeam(projectId);
 
   const add = useAddTeamMember();
   const remove = useRemoveTeamMember();
 
-  // Role permission + project-level permission
+  // Authorization combines user and project permissions
   const canManage =
     hasPermission("assignments:manage") && Boolean(data?.project.canManageTeam);
 
-  // Feature-specific column definitions
+  // Project-team-specific column configuration
   const columns = useMemo(
     () =>
       getTeamMemberColumns({
@@ -74,6 +74,7 @@ export function ProjectTeamPage() {
     });
 
     toast.success("Employee assigned to project");
+
     setAddOpen(false);
   }
 
@@ -142,7 +143,13 @@ export function ProjectTeamPage() {
 
           <CardContent>
             {isPending ? (
-              <LoadingState message="Loading project team..." />
+              <DataTable
+                columns={columns}
+                data={[]}
+                tableLabel="Project team members"
+                getRowId={(member) => member.id}
+                isLoading
+              />
             ) : isError ? (
               <ErrorState
                 title="Unable to load project team"
@@ -177,7 +184,7 @@ export function ProjectTeamPage() {
         </Card>
       </div>
 
-      {/* Add employee to team */}
+      {/* Add member dialog */}
       {canManage && addOpen && (
         <AddProjectMemberDialog
           projectId={projectId}
@@ -188,7 +195,7 @@ export function ProjectTeamPage() {
         />
       )}
 
-      {/* Remove employee confirmation */}
+      {/* Remove member confirmation */}
       <ConfirmDialog
         open={canManage && removing !== null}
         onOpenChange={(open) => {

@@ -1,14 +1,17 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Building2, Plus, Search, X } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
+import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
+import { getTableUrlState } from "@/components/dashboard/table-url-state";
+
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,9 +21,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 import { useAuth } from "@/hooks/use-auth";
+import { getApiErrorMessage } from "@/lib/api-error";
+
 import { DepartmentFormDialog } from "@/features/departments/department-form-dialog";
 import { getDepartmentColumns } from "@/features/departments/department-columns";
 import {
@@ -29,13 +33,11 @@ import {
   useDepartments,
   useUpdateDepartment,
 } from "@/features/departments/departments.queries";
+
 import type {
   Department,
   DepartmentInput,
 } from "@/features/departments/departments.types";
-import { getApiErrorMessage } from "@/lib/api-error";
-
-const PAGE_SIZE = 10;
 
 type DepartmentEditor =
   | { mode: "create" }
@@ -46,60 +48,53 @@ export function DepartmentsPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("departments:manage");
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+
   const [editor, setEditor] = useState<DepartmentEditor>(null);
+
   const [deletingDepartment, setDeletingDepartment] =
     useState<Department | null>(null);
 
-  const rawPage = Number(searchParams.get("page") ?? 1);
-  const page =
-    Number.isSafeInteger(rawPage) && rawPage >= 1 && rawPage <= 100000
-      ? rawPage
-      : 1;
+  // Shared URL-based table state
+  const tableState = getTableUrlState({
+    params,
+    setParams,
+    sortKeys: ["name", "description", "createdAt"] as const,
+    defaultSortBy: "name",
+  });
 
-  const q = (searchParams.get("q") ?? "").trim().slice(0, 100);
+  const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
 
+  const q = (params.get("q") ?? "").trim().slice(0, 100);
+
+  // Server-side data fetching
   const { data, isPending, isError, isFetching, error, refetch } =
     useDepartments({
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
       q: q || undefined,
+      sortBy,
+      sortDir,
     });
 
   const createMutation = useCreateDepartment();
   const updateMutation = useUpdateDepartment();
   const deleteMutation = useDeleteDepartment();
 
-  // The page owns its search and URL state.
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const total = data?.pagination.total ?? 0;
 
-    const formData = new FormData(event.currentTarget);
-    const term = String(formData.get("q") ?? "")
-      .trim()
-      .slice(0, 100);
+  // Search preserves sorting and page-size preferences
+  function handleSearch(value: string) {
+    const next = new URLSearchParams(params);
 
-    const next = new URLSearchParams();
-
-    if (term) next.set("q", term);
-
-    setSearchParams(next);
-  }
-
-  function clearSearch() {
-    setSearchParams({});
-  }
-
-  function goToPage(nextPage: number) {
-    const next = new URLSearchParams(searchParams);
-
-    if (nextPage <= 1) {
-      next.delete("page");
+    if (value) {
+      next.set("q", value);
     } else {
-      next.set("page", String(nextPage));
+      next.delete("q");
     }
 
-    setSearchParams(next);
+    next.delete("page");
+    setParams(next);
   }
 
   async function handleSaveDepartment(payload: DepartmentInput): Promise<void> {
@@ -109,12 +104,14 @@ export function DepartmentsPage() {
 
     if (editor.mode === "create") {
       await createMutation.mutateAsync(payload);
+
       toast.success("Department created successfully");
     } else {
       await updateMutation.mutateAsync({
         id: editor.department.id,
         payload,
       });
+
       toast.success("Department updated successfully");
     }
 
@@ -130,6 +127,7 @@ export function DepartmentsPage() {
       await deleteMutation.mutateAsync(deletingDepartment.id);
 
       toast.success("Department deleted successfully");
+
       setDeletingDepartment(null);
 
       if (data?.data.length === 1 && page > 1) {
@@ -140,18 +138,36 @@ export function DepartmentsPage() {
     }
   }
 
-  const total = data?.pagination.total ?? 0;
-
-  // Only the column configuration is feature-specific.
+  // Feature-specific column definitions
   const columns = useMemo(
     () =>
       getDepartmentColumns({
         canManage,
-        onEdit: (department) => setEditor({ mode: "edit", department }),
+
+        onEdit: (department) =>
+          setEditor({
+            mode: "edit",
+            department,
+          }),
+
         onDelete: setDeletingDepartment,
       }),
     [canManage],
   );
+
+  // Shared table configuration
+  const tableProps = {
+    columns,
+    page,
+    pageSize,
+    total,
+    sorting: tableState.sorting,
+    onSortingChange: tableState.onSortingChange,
+    onPageChange: goToPage,
+    onPageSizeChange: tableState.onPageSizeChange,
+    tableLabel: "Departments",
+    getRowId: (department: Department) => department.id,
+  };
 
   return (
     <>
@@ -188,47 +204,17 @@ export function DepartmentsPage() {
           </CardHeader>
 
           <CardContent className="space-y-5">
-            <form
-              role="search"
-              onSubmit={handleSearch}
-              className="flex flex-wrap items-end gap-2"
-            >
-              <div className="min-w-0 flex-1 sm:max-w-sm">
-                <label htmlFor="department-search" className="sr-only">
-                  Search departments
-                </label>
-
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-
-                  <Input
-                    key={q}
-                    id="department-search"
-                    name="q"
-                    type="search"
-                    defaultValue={q}
-                    maxLength={100}
-                    placeholder="Search departments..."
-                    className="h-10 pl-9"
-                  />
-                </div>
-              </div>
-
-              <Button type="submit">Search</Button>
-
-              {q && (
-                <Button type="button" variant="outline" onClick={clearSearch}>
-                  <X className="size-4" aria-hidden="true" />
-                  Clear
-                </Button>
-              )}
-            </form>
+            <DataTableToolbar
+              searchValue={q}
+              searchLabel="Search departments"
+              placeholder="Search departments..."
+              onSearch={handleSearch}
+              hasActiveFilters={Boolean(q)}
+              onClear={() => handleSearch("")}
+            />
 
             {isPending ? (
-              <LoadingState message="Loading departments..." />
+              <DataTable {...tableProps} data={[]} isLoading />
             ) : isError ? (
               <ErrorState
                 title="Unable to load departments"
@@ -236,7 +222,7 @@ export function DepartmentsPage() {
                 onRetry={() => void refetch()}
                 isRetrying={isFetching}
               />
-            ) : !data || data.pagination.total === 0 ? (
+            ) : !data || total === 0 ? (
               <EmptyState
                 icon={Building2}
                 title={q ? "No matching departments" : "No departments yet"}
@@ -263,14 +249,8 @@ export function DepartmentsPage() {
               />
             ) : (
               <DataTable
-                columns={columns}
+                {...tableProps}
                 data={data.data}
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={goToPage}
-                tableLabel="Departments"
-                getRowId={(department) => department.id}
                 isFetching={isFetching}
               />
             )}
@@ -278,6 +258,7 @@ export function DepartmentsPage() {
         </Card>
       </div>
 
+      {/* Create / Edit */}
       {editor && (
         <DepartmentFormDialog
           key={editor.mode === "edit" ? editor.department.id : "create"}
@@ -290,10 +271,13 @@ export function DepartmentsPage() {
         />
       )}
 
+      {/* Delete confirmation */}
       <ConfirmDialog
         open={deletingDepartment !== null}
         onOpenChange={(open) => {
-          if (!open) setDeletingDepartment(null);
+          if (!open) {
+            setDeletingDepartment(null);
+          }
         }}
         title="Delete department?"
         description={

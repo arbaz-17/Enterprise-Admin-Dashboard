@@ -1,14 +1,16 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Building2, Plus, Search, X } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
+import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
+import { getTableUrlState } from "@/components/dashboard/table-url-state";
+
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -28,24 +29,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useAuth } from "@/hooks/use-auth";
+import { getApiErrorMessage } from "@/lib/api-error";
+
 import { ClientFormDialog } from "@/features/clients/client-form-dialog";
 import { getClientColumns } from "@/features/clients/client-columns";
+
 import {
   useClients,
   useCreateClient,
   useDeleteClient,
   useUpdateClient,
 } from "@/features/clients/clients.queries";
+
 import type {
   Client,
   ClientInput,
   ClientStatus,
 } from "@/features/clients/clients.types";
-
-import { useAuth } from "@/hooks/use-auth";
-import { getApiErrorMessage } from "@/lib/api-error";
-
-const PAGE_SIZE = 10;
 
 type Editor = { mode: "create" } | { mode: "edit"; client: Client } | null;
 
@@ -57,13 +58,21 @@ export function ClientsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Client | null>(null);
 
-  // URL-based pagination and filters
-  const rawPage = Number(params.get("page") ?? "1");
+  // Shared URL-based pagination and sorting
+  const tableState = getTableUrlState({
+    params,
+    setParams,
+    sortKeys: [
+      "name",
+      "contactName",
+      "contactEmail",
+      "status",
+      "updatedAt",
+    ] as const,
+    defaultSortBy: "name",
+  });
 
-  const page =
-    Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 100000
-      ? rawPage
-      : 1;
+  const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
@@ -74,17 +83,21 @@ export function ClientsPage() {
       ? statusParam
       : undefined;
 
-  // Existing API queries and mutations
+  // API queries and mutations
   const { data, isPending, isError, isFetching, error, refetch } = useClients({
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     q: q || undefined,
     status,
+    sortBy,
+    sortDir,
   });
 
   const create = useCreateClient();
   const update = useUpdateClient();
   const remove = useDeleteClient();
+
+  const total = data?.pagination.total ?? 0;
 
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -99,23 +112,11 @@ export function ClientsPage() {
     setParams(next);
   }
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const value = String(new FormData(event.currentTarget).get("q") ?? "")
-      .trim()
-      .slice(0, 100);
-
-    setFilter("q", value);
-  }
-
-  function goToPage(nextPage: number) {
+  function clearFilters() {
     const next = new URLSearchParams(params);
 
-    if (nextPage <= 1) {
-      next.delete("page");
-    } else {
-      next.set("page", String(nextPage));
+    for (const key of ["q", "status", "page"]) {
+      next.delete(key);
     }
 
     setParams(next);
@@ -128,6 +129,7 @@ export function ClientsPage() {
 
     if (editor.mode === "create") {
       await create.mutateAsync(payload);
+
       toast.success("Client created successfully");
     } else {
       await update.mutateAsync({
@@ -150,6 +152,7 @@ export function ClientsPage() {
       await remove.mutateAsync(deleting.id);
 
       toast.success("Client deleted successfully");
+
       setDeleting(null);
 
       if (data?.data.length === 1 && page > 1) {
@@ -160,7 +163,7 @@ export function ClientsPage() {
     }
   }
 
-  // Client-specific column configuration
+  // Feature-specific columns
   const columns = useMemo(
     () =>
       getClientColumns({
@@ -177,7 +180,18 @@ export function ClientsPage() {
     [canManage],
   );
 
-  const total = data?.pagination.total ?? 0;
+  const tableProps = {
+    columns,
+    page,
+    pageSize,
+    total,
+    sorting: tableState.sorting,
+    onSortingChange: tableState.onSortingChange,
+    onPageChange: goToPage,
+    onPageSizeChange: tableState.onPageSizeChange,
+    tableLabel: "Clients",
+    getRowId: (client: Client) => client.id,
+  };
 
   return (
     <>
@@ -214,82 +228,39 @@ export function ClientsPage() {
           </CardHeader>
 
           <CardContent className="space-y-5">
-            {/* Search and status filter */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-              <form
-                role="search"
-                className="flex min-w-0 flex-1 items-end gap-2"
-                onSubmit={handleSearch}
+            <DataTableToolbar
+              searchValue={q}
+              searchLabel="Search clients"
+              placeholder="Search clients..."
+              onSearch={(value) => setFilter("q", value)}
+              hasActiveFilters={Boolean(q || status)}
+              onClear={clearFilters}
+            >
+              <Select
+                value={status ?? "all"}
+                onValueChange={(value) =>
+                  setFilter("status", value === "all" ? "" : value)
+                }
               >
-                <div className="relative min-w-0 flex-1 sm:max-w-sm">
-                  <label htmlFor="client-search" className="sr-only">
-                    Search clients
-                  </label>
-
-                  <Search
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                  />
-
-                  <Input
-                    id="client-search"
-                    name="q"
-                    type="search"
-                    key={q}
-                    defaultValue={q}
-                    maxLength={100}
-                    placeholder="Search clients..."
-                    className="h-10 pl-9"
-                  />
-                </div>
-
-                <Button type="submit" className="shrink-0">
-                  Search
-                </Button>
-
-                {q && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="Clear client search"
-                    onClick={() => setFilter("q", "")}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
-                )}
-              </form>
-
-              <div className="w-full sm:w-44">
-                <label htmlFor="client-status-filter" className="sr-only">
-                  Filter clients by status
-                </label>
-
-                <Select
-                  value={status ?? "all"}
-                  onValueChange={(value) =>
-                    setFilter("status", value === "all" ? "" : value)
-                  }
+                <SelectTrigger
+                  aria-label="Filter clients by status"
+                  className="h-10 w-44"
                 >
-                  <SelectTrigger
-                    id="client-status-filter"
-                    className="h-10 w-full"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
 
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
 
-            {/* Table content */}
+                  <SelectItem value="active">Active</SelectItem>
+
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </DataTableToolbar>
+
             {isPending ? (
-              <LoadingState message="Loading clients..." />
+              <DataTable {...tableProps} data={[]} isLoading />
             ) : isError ? (
               <ErrorState
                 title="Unable to load clients"
@@ -324,14 +295,8 @@ export function ClientsPage() {
               />
             ) : (
               <DataTable
-                columns={columns}
+                {...tableProps}
                 data={data.data}
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={goToPage}
-                tableLabel="Clients"
-                getRowId={(client) => client.id}
                 isFetching={isFetching}
               />
             )}
@@ -339,7 +304,7 @@ export function ClientsPage() {
         </Card>
       </div>
 
-      {/* Create / Edit dialog */}
+      {/* Create / Edit */}
       {editor && (
         <ClientFormDialog
           key={editor.mode === "edit" ? editor.client.id : "create"}

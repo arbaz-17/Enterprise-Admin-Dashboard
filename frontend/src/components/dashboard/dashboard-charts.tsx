@@ -1,4 +1,3 @@
-
 import {
   Area,
   AreaChart,
@@ -27,12 +26,19 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-import { dashboardDemo } from "@/data/dashboard-demo";
+import type {
+  DashboardOverview,
+  ProjectStatus,
+} from "@/features/dashboard/dashboard.types";
 
-/* ========================================
-   CHART CONFIGURATION
-======================================== */
+// Shared chart types
+type MonthlyActivity = DashboardOverview["monthlyActivity"];
 
+type ProjectStatusData = DashboardOverview["projectStatus"];
+
+type DepartmentData = DashboardOverview["departments"];
+
+// Chart colors and labels
 const monthlyConfig = {
   created: {
     label: "Created",
@@ -57,22 +63,31 @@ const departmentConfig = {
   },
 } satisfies ChartConfig;
 
-/* ========================================
-   MONTHLY PROJECT ACTIVITY
-======================================== */
+const statusLabels: Record<ProjectStatus, string> = {
+  planning: "Planning",
+  active: "Active",
+  on_hold: "On hold",
+  completed: "Completed",
+};
 
-export function MonthlyActivityChart() {
+const statusColors: Record<ProjectStatus, string> = {
+  planning: "var(--chart-2)",
+  active: "var(--chart-1)",
+  on_hold: "var(--chart-4)",
+  completed: "var(--chart-3)",
+};
+
+// Monthly project activity
+export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">
-            Monthly project activity
-          </h2>
+          <h2 className="text-base font-semibold">Monthly project activity</h2>
         </CardTitle>
 
         <CardDescription>
-          Projects created and completed over six sample months.
+          Projects created and completed over the past six months.
         </CardDescription>
       </CardHeader>
 
@@ -83,7 +98,7 @@ export function MonthlyActivityChart() {
         >
           <AreaChart
             accessibilityLayer
-            data={dashboardDemo.monthlyActivity}
+            data={data}
             margin={{
               top: 10,
               right: 10,
@@ -91,10 +106,7 @@ export function MonthlyActivityChart() {
               bottom: 0,
             }}
           >
-            <CartesianGrid
-              vertical={false}
-              strokeDasharray="3 3"
-            />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
 
             <XAxis
               dataKey="month"
@@ -112,9 +124,7 @@ export function MonthlyActivityChart() {
 
             <ChartTooltip
               cursor={false}
-              content={
-                <ChartTooltipContent indicator="line" />
-              }
+              content={<ChartTooltipContent indicator="line" />}
             />
 
             <Area
@@ -137,15 +147,10 @@ export function MonthlyActivityChart() {
           </AreaChart>
         </ChartContainer>
 
-        <div
-          className="flex flex-wrap items-center
-                     justify-center gap-5 text-xs
-                     text-muted-foreground"
-        >
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
             <span
-              className="size-2.5 rounded-full
-                         bg-chart-1"
+              className="size-2.5 rounded-full bg-chart-1"
               aria-hidden="true"
             />
             Created
@@ -153,8 +158,7 @@ export function MonthlyActivityChart() {
 
           <span className="flex items-center gap-2">
             <span
-              className="size-2.5 rounded-full
-                         bg-chart-3"
+              className="size-2.5 rounded-full bg-chart-3"
               aria-hidden="true"
             />
             Completed
@@ -165,24 +169,21 @@ export function MonthlyActivityChart() {
   );
 }
 
-/* ========================================
-   PROJECT STATUS DISTRIBUTION
-======================================== */
+// Project status distribution
+export function ProjectStatusChart({ data }: { data: ProjectStatusData }) {
+  const chartData = data.map((item) => ({
+    name: statusLabels[item.status],
+    value: item.count,
+    color: statusColors[item.status],
+  }));
 
-export function ProjectStatusChart() {
-  const totalProjects =
-    dashboardDemo.projectStatus.reduce(
-      (total, item) => total + item.value,
-      0
-    );
+  const totalProjects = data.reduce((total, item) => total + item.count, 0);
 
   return (
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">
-            Project status
-          </h2>
+          <h2 className="text-base font-semibold">Project status</h2>
         </CardTitle>
 
         <CardDescription>
@@ -198,73 +199,54 @@ export function ProjectStatusChart() {
           >
             <PieChart>
               <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    hideLabel
-                    nameKey="name"
-                  />
-                }
+                content={<ChartTooltipContent hideLabel nameKey="name" />}
               />
 
               <Pie
-                data={dashboardDemo.projectStatus}
+                data={chartData}
                 dataKey="value"
                 nameKey="name"
                 innerRadius={68}
                 outerRadius={93}
-                paddingAngle={3}
+                paddingAngle={totalProjects > 0 ? 3 : 0}
                 stroke="var(--card)"
                 strokeWidth={2}
               >
-                {dashboardDemo.projectStatus.map((item) => (
-                  <Cell
-                    key={item.name}
-                    fill={item.color}
-                  />
+                {chartData.map((item) => (
+                  <Cell key={item.name} fill={item.color} />
                 ))}
               </Pie>
             </PieChart>
           </ChartContainer>
 
-          <div
-            className="pointer-events-none absolute inset-0
-                       flex flex-col items-center justify-center"
-          >
-            <span
-              className="text-2xl font-semibold
-                         tracking-tight tabular-nums"
-            >
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-semibold tracking-tight tabular-nums">
               {totalProjects}
             </span>
 
-            <span className="text-xs text-muted-foreground">
-              Projects
-            </span>
+            <span className="text-xs text-muted-foreground">Projects</span>
           </div>
         </div>
 
-        {/* Visible numeric summary also helps accessibility. */}
         <ul className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {dashboardDemo.projectStatus.map((item) => (
+          {chartData.map((item) => (
             <li
               key={item.name}
               className="flex items-center justify-between gap-2"
             >
-              <span
-                className="flex min-w-0 items-center
-                           gap-2 text-xs text-muted-foreground"
-              >
+              <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <span
                   className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: item.color }}
+                  style={{
+                    backgroundColor: item.color,
+                  }}
                   aria-hidden="true"
                 />
+
                 {item.name}
               </span>
 
-              <span
-                className="text-xs font-semibold tabular-nums"
-              >
+              <span className="text-xs font-semibold tabular-nums">
                 {item.value}
               </span>
             </li>
@@ -275,22 +257,17 @@ export function ProjectStatusChart() {
   );
 }
 
-/* ========================================
-   EMPLOYEES BY DEPARTMENT
-======================================== */
-
-export function DepartmentChart() {
+// Employees by department
+export function DepartmentChart({ data }: { data: DepartmentData }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">
-            Employees by department
-          </h2>
+          <h2 className="text-base font-semibold">Employees by department</h2>
         </CardTitle>
 
         <CardDescription>
-          Illustrative distribution of employees.
+          Current employee distribution across departments.
         </CardDescription>
       </CardHeader>
 
@@ -301,7 +278,7 @@ export function DepartmentChart() {
         >
           <BarChart
             accessibilityLayer
-            data={dashboardDemo.departments}
+            data={data}
             layout="vertical"
             margin={{
               top: 5,
@@ -310,10 +287,7 @@ export function DepartmentChart() {
               left: 0,
             }}
           >
-            <CartesianGrid
-              horizontal={false}
-              strokeDasharray="3 3"
-            />
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
 
             <XAxis
               type="number"
@@ -336,9 +310,7 @@ export function DepartmentChart() {
 
             <ChartTooltip
               cursor={false}
-              content={
-                <ChartTooltipContent hideLabel />
-              }
+              content={<ChartTooltipContent hideLabel />}
             />
 
             <Bar

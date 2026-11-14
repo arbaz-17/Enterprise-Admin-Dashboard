@@ -1,14 +1,17 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { FolderKanban, Plus, Search, X } from "lucide-react";
+import { FolderKanban, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/dashboard/data-table";
+import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
+import { getTableUrlState } from "@/components/dashboard/table-url-state";
+
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -31,17 +34,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 
 import { ProjectFormDialog } from "@/features/projects/project-form-dialog";
+import { ProjectProgressDialog } from "@/features/projects/project-progress-dialog";
+
 import {
   getProjectColumns,
   statusLabels,
 } from "@/features/projects/project-columns";
-import { ProjectProgressDialog } from "@/features/projects/project-progress-dialog";
+
 import {
   useCreateProject,
   useDeleteProject,
   useProjects,
   useUpdateProject,
 } from "@/features/projects/projects.queries";
+
 import type {
   Project,
   ProjectInput,
@@ -49,8 +55,6 @@ import type {
   ProjectStatus,
   ProjectStatusInput,
 } from "@/features/projects/projects.types";
-
-const PAGE_SIZE = 10;
 
 const STATUSES: ProjectStatus[] = [
   "planning",
@@ -69,38 +73,53 @@ export function ProjectsPage() {
   const canCreate = hasPermission("projects:create");
   const canDelete = hasPermission("projects:delete");
   const canManage = hasPermission("projects:manage");
+
   const isAdmin = user?.role === "admin";
 
   const [params, setParams] = useSearchParams();
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Project | null>(null);
 
-  // URL-based pagination and filtering
-  const rawPage = Number(params.get("page") ?? "1");
+  // Shared URL-based pagination and sorting
+  const tableState = getTableUrlState({
+    params,
+    setParams,
+    sortKeys: [
+      "name",
+      "clientName",
+      "managerName",
+      "status",
+      "priority",
+      "progress",
+      "dueDate",
+    ] as const,
+    defaultSortBy: "name",
+  });
 
-  const page =
-    Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 100000
-      ? rawPage
-      : 1;
+  const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
-  const status = STATUSES.find((item) => item === params.get("status"));
+  const status = STATUSES.find((value) => value === params.get("status"));
 
-  const priority = PRIORITIES.find((item) => item === params.get("priority"));
+  const priority = PRIORITIES.find((value) => value === params.get("priority"));
 
-  // Data fetching
+  // Server-side data
   const { data, isPending, isError, isFetching, error, refetch } = useProjects({
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     q: q || undefined,
     status,
     priority,
+    sortBy,
+    sortDir,
   });
 
   const create = useCreateProject();
   const update = useUpdateProject();
   const remove = useDeleteProject();
+
+  const total = data?.pagination.total ?? 0;
 
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(params);
@@ -115,29 +134,17 @@ export function ProjectsPage() {
     setParams(next);
   }
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const term = String(new FormData(event.currentTarget).get("q") ?? "")
-      .trim()
-      .slice(0, 100);
-
-    setFilter("q", term);
-  }
-
-  function goToPage(nextPage: number) {
+  function clearFilters() {
     const next = new URLSearchParams(params);
 
-    if (nextPage <= 1) {
-      next.delete("page");
-    } else {
-      next.set("page", String(nextPage));
+    for (const key of ["q", "status", "priority", "page"]) {
+      next.delete(key);
     }
 
     setParams(next);
   }
 
-  // Admin: full project management
+  // Admin: Full project CRUD
   async function handleAdminSave(payload: ProjectInput): Promise<void> {
     if (!isAdmin || !editor) {
       throw new Error("Only Admins can manage project details");
@@ -145,6 +152,7 @@ export function ProjectsPage() {
 
     if (editor.mode === "create") {
       await create.mutateAsync(payload);
+
       toast.success("Project created successfully");
     } else {
       await update.mutateAsync({
@@ -158,7 +166,7 @@ export function ProjectsPage() {
     setEditor(null);
   }
 
-  // Manager: assigned project status and progress only
+  // Manager: Assigned project status and progress
   async function handleManagerSave(payload: ProjectStatusInput): Promise<void> {
     if (
       !canManage ||
@@ -175,6 +183,7 @@ export function ProjectsPage() {
     });
 
     toast.success("Project progress updated");
+
     setEditor(null);
   }
 
@@ -187,6 +196,7 @@ export function ProjectsPage() {
       await remove.mutateAsync(deleting.id);
 
       toast.success("Project deleted successfully");
+
       setDeleting(null);
 
       if (data?.data.length === 1 && page > 1) {
@@ -197,19 +207,36 @@ export function ProjectsPage() {
     }
   }
 
-  const total = data?.pagination.total ?? 0;
-
-  // Feature-specific columns; reusable table rendering.
+  // Feature-specific column configuration
   const columns = useMemo(
     () =>
       getProjectColumns({
         canManage,
         canDelete,
-        onEdit: (project) => setEditor({ mode: "edit", project }),
+
+        onEdit: (project) =>
+          setEditor({
+            mode: "edit",
+            project,
+          }),
+
         onDelete: setDeleting,
       }),
     [canManage, canDelete],
   );
+
+  const tableProps = {
+    columns,
+    page,
+    pageSize,
+    total,
+    sorting: tableState.sorting,
+    onSortingChange: tableState.onSortingChange,
+    onPageChange: goToPage,
+    onPageSizeChange: tableState.onPageSizeChange,
+    tableLabel: "Projects",
+    getRowId: (project: Project) => project.id,
+  };
 
   return (
     <>
@@ -248,116 +275,67 @@ export function ProjectsPage() {
           </CardHeader>
 
           <CardContent className="space-y-5">
-            {/* Search and filters */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-              <form
-                role="search"
-                className="flex min-w-0 flex-1 items-end gap-2"
-                onSubmit={handleSearch}
+            <DataTableToolbar
+              searchValue={q}
+              searchLabel="Search projects"
+              placeholder="Project or client name..."
+              onSearch={(value) => setFilter("q", value)}
+              hasActiveFilters={Boolean(q || status || priority)}
+              onClear={clearFilters}
+            >
+              {/* Project status */}
+              <Select
+                value={status ?? "all"}
+                onValueChange={(value) =>
+                  setFilter("status", value === "all" ? "" : value)
+                }
               >
-                <div className="relative min-w-0 flex-1 sm:max-w-sm">
-                  <label htmlFor="project-search" className="sr-only">
-                    Search project or client
-                  </label>
-
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-
-                  <Input
-                    key={q}
-                    id="project-search"
-                    name="q"
-                    type="search"
-                    maxLength={100}
-                    defaultValue={q}
-                    placeholder="Project or client name..."
-                    className="h-10 pl-9"
-                  />
-                </div>
-
-                <Button type="submit">Search</Button>
-
-                {q && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="Clear search"
-                    onClick={() => setFilter("q", "")}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
-                )}
-              </form>
-
-              {/* Status filter */}
-              <div className="w-full sm:w-44">
-                <label className="sr-only" htmlFor="project-status-filter">
-                  Filter projects by status
-                </label>
-
-                <Select
-                  value={status ?? "all"}
-                  onValueChange={(value) =>
-                    setFilter("status", value === "all" ? "" : value)
-                  }
+                <SelectTrigger
+                  aria-label="Filter projects by status"
+                  className="h-10 w-44"
                 >
-                  <SelectTrigger
-                    id="project-status-filter"
-                    className="h-10 w-full"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
 
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
 
-                    {STATUSES.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {statusLabels[value]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  {STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {statusLabels[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {/* Priority filter */}
-              <div className="w-full sm:w-44">
-                <label className="sr-only" htmlFor="project-priority-filter">
-                  Filter projects by priority
-                </label>
-
-                <Select
-                  value={priority ?? "all"}
-                  onValueChange={(value) =>
-                    setFilter("priority", value === "all" ? "" : value)
-                  }
+              {/* Priority */}
+              <Select
+                value={priority ?? "all"}
+                onValueChange={(value) =>
+                  setFilter("priority", value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger
+                  aria-label="Filter projects by priority"
+                  className="h-10 w-44"
                 >
-                  <SelectTrigger
-                    id="project-priority-filter"
-                    className="h-10 w-full"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
 
-                  <SelectContent>
-                    <SelectItem value="all">All priorities</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">All priorities</SelectItem>
 
-                    {PRIORITIES.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {value[0].toUpperCase() + value.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  {PRIORITIES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value[0].toUpperCase() + value.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DataTableToolbar>
 
-            {/* Table content */}
             {isPending ? (
-              <LoadingState message="Loading projects..." />
+              <DataTable {...tableProps} data={[]} isLoading />
             ) : isError ? (
               <ErrorState
                 title="Unable to load projects"
@@ -365,7 +343,7 @@ export function ProjectsPage() {
                 onRetry={() => void refetch()}
                 isRetrying={isFetching}
               />
-            ) : data.pagination.total === 0 ? (
+            ) : !data || total === 0 ? (
               <EmptyState
                 icon={FolderKanban}
                 title={
@@ -396,14 +374,8 @@ export function ProjectsPage() {
               />
             ) : (
               <DataTable
-                columns={columns}
+                {...tableProps}
                 data={data.data}
-                page={page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                onPageChange={goToPage}
-                tableLabel="Projects"
-                getRowId={(project) => project.id}
                 isFetching={isFetching}
               />
             )}
@@ -411,7 +383,7 @@ export function ProjectsPage() {
         </Card>
       </div>
 
-      {/* Admin create/edit dialog */}
+      {/* Admin create/edit */}
       {editor && isAdmin && (
         <ProjectFormDialog
           key={editor.mode === "create" ? "create" : editor.project.id}
@@ -424,7 +396,7 @@ export function ProjectsPage() {
         />
       )}
 
-      {/* Manager status/progress dialog */}
+      {/* Manager progress updates */}
       {editor?.mode === "edit" && !isAdmin && editor.project.canEdit && (
         <ProjectProgressDialog
           key={editor.project.id}

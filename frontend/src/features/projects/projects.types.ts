@@ -44,6 +44,8 @@ export interface ProjectListParams {
   status?: ProjectStatus;
   priority?: ProjectPriority;
   clientId?: string;
+  sortBy: "name" | "clientName" | "managerName" | "status" | "priority" | "progress" | "startDate" | "dueDate" | "updatedAt";
+  sortDir?: "asc" | "desc";
 }
 
 export interface ProjectListResponse {
