@@ -22,6 +22,8 @@ export interface ClientListParams {
   pageSize: number;
   q?: string;
   status?: ClientStatus;
+  sortBy: "name" | "contactName" | "contactEmail" | "status" | "updatedAt";
+  sortDir?: "asc" | "desc";
 }
 
 export interface ClientListResponse {

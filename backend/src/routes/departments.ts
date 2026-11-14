@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { asc, eq, ilike, sql } from "drizzle-orm";
+import { asc, eq, ilike, sql, desc } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import { departments } from "../db/schema.js";
@@ -19,6 +19,9 @@ const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   q: z.string().trim().max(100).optional(),
+  sortBy: z.enum(["name", "description", "createdAt"]).default("name"),
+
+  sortDir: z.enum(["asc", "desc"]).default("asc"),
 });
 
 const descriptionSchema = z
@@ -70,7 +73,15 @@ departmentsRouter.get(
       return;
     }
 
-    const { page, pageSize, q } = parsed.data;
+    const { page, pageSize, q, sortBy, sortDir } = parsed.data;
+
+    const sortColumns = {
+      name: departments.name,
+      description: departments.description,
+      createdAt: departments.createdAt,
+    };
+
+    const sortColumn = sortColumns[sortBy];
 
     const filter = q ? ilike(departments.name, `%${q}%`) : undefined;
 
@@ -78,7 +89,10 @@ departmentsRouter.get(
       .select()
       .from(departments)
       .where(filter)
-      .orderBy(asc(departments.name), asc(departments.id))
+      .orderBy(
+        sortDir === "desc" ? desc(sortColumn) : asc(sortColumn),
+        asc(departments.id),
+      )
       .limit(pageSize)
       .offset((page - 1) * pageSize);
 

@@ -12,6 +12,9 @@ export interface DepartmentListParams {
   page: number;
   pageSize: number;
   q?: string;
+
+  sortBy?: "name" | "description" | "createdAt";
+  sortDir?: "asc" | "desc";
 }
 
 export interface DepartmentListResponse {

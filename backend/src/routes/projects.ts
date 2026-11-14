@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { and, asc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or, sql, desc, type SQL } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import { clients, employees, projects, users } from "../db/schema.js";
@@ -24,6 +24,19 @@ const listQuerySchema = z.object({
   status: statusSchema.optional(),
   priority: prioritySchema.optional(),
   clientId: z.uuid().optional(),
+  sortBy: z
+    .enum([
+      "name",
+      "clientName",
+      "managerName",
+      "status",
+      "priority",
+      "progress",
+      "dueDate",
+    ])
+    .default("name"),
+
+  sortDir: z.enum(["asc", "desc"]).default("asc"),
 });
 
 const projectFields = z.strictObject({
@@ -169,17 +182,36 @@ projectsRouter.get(
   async (req, res) => {
     const parsed = listQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid project list filters",
-          },
-        });
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid project list filters",
+        },
+      });
       return;
     }
-    const { page, pageSize, q, status, priority, clientId } = parsed.data;
+    const { page, pageSize, q, status, priority, clientId, sortBy, sortDir } =
+      parsed.data;
+
+    const priorityRank = sql<number>`
+  CASE ${projects.priority}
+    WHEN 'high' THEN 3
+    WHEN 'medium' THEN 2
+    ELSE 1
+  END
+`;
+
+    const sortColumns = {
+      name: projects.name,
+      clientName: clients.name,
+      managerName: employees.fullName,
+      status: projects.status,
+      priority: priorityRank,
+      progress: projects.progress,
+      dueDate: projects.dueDate,
+    };
+
+    const sortColumn = sortColumns[sortBy];
     const filters: SQL[] = [];
     if (q) {
       const pattern = `%${escapeLike(q)}%`;
@@ -201,7 +233,10 @@ projectsRouter.get(
       .innerJoin(clients, eq(projects.clientId, clients.id))
       .leftJoin(employees, eq(projects.managerEmployeeId, employees.id))
       .where(where)
-      .orderBy(asc(projects.name), asc(projects.id))
+      .orderBy(
+        sortDir === "desc" ? desc(sortColumn) : asc(sortColumn),
+        asc(projects.id),
+      )
       .limit(pageSize)
       .offset((page - 1) * pageSize);
 
@@ -273,20 +308,16 @@ projectsRouter.get(
   async (req, res) => {
     const parsed = uuidParams.safeParse(req.params);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: { code: "VALIDATION_ERROR", message: "Invalid project ID" },
-        });
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "Invalid project ID" },
+      });
       return;
     }
     const record = await projectById(parsed.data.id);
     if (!record) {
-      res
-        .status(404)
-        .json({
-          error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
-        });
+      res.status(404).json({
+        error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
+      });
       return;
     }
     const actor = req.authUser!;
@@ -311,11 +342,9 @@ projectsRouter.post(
   async (req, res) => {
     const parsed = createProjectSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: { code: "VALIDATION_ERROR", message: "Invalid project data" },
-        });
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "Invalid project data" },
+      });
       return;
     }
     const input = parsed.data;
@@ -323,15 +352,13 @@ projectsRouter.post(
       !validDates(input.startDate, input.dueDate) ||
       !validCompletedProgress(input.status, input.progress)
     ) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: "INVALID_PROJECT_DATES_OR_PROGRESS",
-            message:
-              "Check the project date order and ensure completed projects have 100% progress",
-          },
-        });
+      res.status(400).json({
+        error: {
+          code: "INVALID_PROJECT_DATES_OR_PROGRESS",
+          message:
+            "Check the project date order and ensure completed projects have 100% progress",
+        },
+      });
       return;
     }
     const invalid = await checkReferences(input);
@@ -355,14 +382,12 @@ projectsRouter.post(
         .json({ data: { ...record!, canEdit: true } });
     } catch (error) {
       if (pgErrorCode(error) === "23503") {
-        res
-          .status(409)
-          .json({
-            error: {
-              code: "INVALID_RELATION",
-              message: "Client or manager no longer exists",
-            },
-          });
+        res.status(409).json({
+          error: {
+            code: "INVALID_RELATION",
+            message: "Client or manager no longer exists",
+          },
+        });
         return;
       }
       throw error;
@@ -384,14 +409,12 @@ projectsRouter.patch(
         : managerUpdateSchema.safeParse(req.body);
 
     if (!params.success || !body.success) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid project update or unauthorized fields",
-          },
-        });
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid project update or unauthorized fields",
+        },
+      });
       return;
     }
     const [existing] = await db
@@ -400,24 +423,20 @@ projectsRouter.patch(
       .where(eq(projects.id, params.data.id))
       .limit(1);
     if (!existing) {
-      res
-        .status(404)
-        .json({
-          error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
-        });
+      res.status(404).json({
+        error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
+      });
       return;
     }
     if (
       !(await actorCanEdit(actor.role, actor.id, existing.managerEmployeeId))
     ) {
-      res
-        .status(403)
-        .json({
-          error: {
-            code: "PROJECT_NOT_ASSIGNED",
-            message: "You can only update projects assigned to you",
-          },
-        });
+      res.status(403).json({
+        error: {
+          code: "PROJECT_NOT_ASSIGNED",
+          message: "You can only update projects assigned to you",
+        },
+      });
       return;
     }
     const updates: Partial<z.infer<typeof projectFields>> = body.data;
@@ -427,15 +446,13 @@ projectsRouter.patch(
       "startDate" in updates ? updates.startDate : existing.startDate;
     const due = "dueDate" in updates ? updates.dueDate : existing.dueDate;
     if (!validDates(start, due) || !validCompletedProgress(status, progress)) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: "INVALID_PROJECT_DATES_OR_PROGRESS",
-            message:
-              "Check project dates and ensure completed projects have 100% progress",
-          },
-        });
+      res.status(400).json({
+        error: {
+          code: "INVALID_PROJECT_DATES_OR_PROGRESS",
+          message:
+            "Check project dates and ensure completed projects have 100% progress",
+        },
+      });
       return;
     }
     if (actor.role === "admin") {
@@ -468,14 +485,12 @@ projectsRouter.patch(
         .where(ownerCondition)
         .returning({ id: projects.id });
       if (!updated) {
-        res
-          .status(actor.role === "manager" ? 403 : 404)
-          .json({
-            error: {
-              code: "PROJECT_NOT_ASSIGNED_OR_NOT_FOUND",
-              message: "Project is no longer available for editing",
-            },
-          });
+        res.status(actor.role === "manager" ? 403 : 404).json({
+          error: {
+            code: "PROJECT_NOT_ASSIGNED_OR_NOT_FOUND",
+            message: "Project is no longer available for editing",
+          },
+        });
         return;
       }
       const record = await projectById(updated.id);
@@ -491,14 +506,12 @@ projectsRouter.patch(
       });
     } catch (error) {
       if (pgErrorCode(error) === "23503") {
-        res
-          .status(409)
-          .json({
-            error: {
-              code: "INVALID_RELATION",
-              message: "Client or manager no longer exists",
-            },
-          });
+        res.status(409).json({
+          error: {
+            code: "INVALID_RELATION",
+            message: "Client or manager no longer exists",
+          },
+        });
         return;
       }
       throw error;
@@ -514,11 +527,9 @@ projectsRouter.delete(
   async (req, res) => {
     const params = uuidParams.safeParse(req.params);
     if (!params.success) {
-      res
-        .status(400)
-        .json({
-          error: { code: "VALIDATION_ERROR", message: "Invalid project ID" },
-        });
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "Invalid project ID" },
+      });
       return;
     }
     try {
@@ -527,25 +538,21 @@ projectsRouter.delete(
         .where(eq(projects.id, params.data.id))
         .returning({ id: projects.id });
       if (!deleted) {
-        res
-          .status(404)
-          .json({
-            error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
-          });
+        res.status(404).json({
+          error: { code: "PROJECT_NOT_FOUND", message: "Project not found" },
+        });
         return;
       }
       res.sendStatus(204);
     } catch (error) {
       if (pgErrorCode(error) === "23503") {
-        res
-          .status(409)
-          .json({
-            error: {
-              code: "PROJECT_IN_USE",
-              message:
-                "Remove project team assignments before deleting the project",
-            },
-          });
+        res.status(409).json({
+          error: {
+            code: "PROJECT_IN_USE",
+            message:
+              "Remove project team assignments before deleting the project",
+          },
+        });
         return;
       }
       throw error;
