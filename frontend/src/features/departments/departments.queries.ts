@@ -11,6 +11,12 @@ import type {
   UpdateDepartmentInput,
 } from "./departments.types";
 
+import type { QueryClient } from "@tanstack/react-query";
+
+import { dashboardKeys } from "../dashboard/dashboard.queries";
+import { employeeKeys } from "../employees/employees.queries";
+import { teamKeys } from "../team-assignments/team-assignment.queries";
+
 import { departmentsApi } from "./departments-api";
 import type { DepartmentListParams } from "./departments.types";
 
@@ -23,6 +29,26 @@ export const departmentKeys = {
   list: (params: DepartmentListParams) =>
     [...departmentKeys.lists(), params] as const,
 };
+
+async function invalidateDepartmentQueries(
+  queryClient: QueryClient,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: departmentKeys.all,
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: dashboardKeys.all,
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: employeeKeys.all,
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: teamKeys.all,
+  });
+}
 
 export function useDepartments(params: DepartmentListParams) {
   return useQuery({
@@ -42,9 +68,7 @@ export function useCreateDepartment() {
       departmentsApi.create(payload),
 
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: departmentKeys.all,
-      }),
+      invalidateDepartmentQueries(queryClient),
   });
 }
 
@@ -56,9 +80,7 @@ export function useUpdateDepartment() {
       departmentsApi.update(id, payload),
 
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: departmentKeys.all,
-      }),
+      invalidateDepartmentQueries(queryClient),
   });
 }
 
@@ -70,8 +92,6 @@ export function useDeleteDepartment() {
       departmentsApi.remove(id),
 
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: departmentKeys.all,
-      }),
+      invalidateDepartmentQueries(queryClient),
   });
 }

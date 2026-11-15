@@ -16,7 +16,7 @@ import {
   DepartmentChart,
 } from "@/components/dashboard/dashboard-charts";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ErrorState } from "@/components/shared/error-state";
 
 import { Badge } from "@/components/ui/badge";
@@ -71,16 +71,7 @@ export function DashboardPage() {
 
   // Initial loading
   if (isPending) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Overview"
-          description="Organization performance and activity."
-        />
-
-        <LoadingState message="Loading live dashboard data..." />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Error state
@@ -112,8 +103,6 @@ export function DashboardPage() {
         description="Live organization statistics from the Enterprise Operations database."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Live data</Badge>
-
             <Button
               type="button"
               variant="outline"
@@ -254,11 +243,6 @@ export function DashboardPage() {
         </Card>
       </section>
 
-      {/* Data timestamp */}
-      <p className="text-xs text-muted-foreground">
-        Dashboard generated {formatDate(overview.generatedAt)}. Refresh to
-        request current values.
-      </p>
     </div>
   );
 }

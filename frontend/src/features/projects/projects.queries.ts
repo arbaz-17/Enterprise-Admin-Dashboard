@@ -5,6 +5,10 @@ import type {
   ProjectListParams,
   ProjectStatusInput,
 } from "./projects.types";
+import type { QueryClient } from "@tanstack/react-query";
+
+import { dashboardKeys } from "../dashboard/dashboard.queries";
+import { teamKeys } from "../team-assignments/team-assignment.queries";
 
 export const projectKeys = {
   all: ["projects"] as const,
@@ -13,6 +17,22 @@ export const projectKeys = {
     [...projectKeys.lists(), params] as const,
   options: () => [...projectKeys.all, "form-options"] as const,
 };
+
+async function invalidateProjectQueries(
+  queryClient: QueryClient,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: projectKeys.lists(),
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: dashboardKeys.all,
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: teamKeys.all,
+  });
+}
 
 export function useProjects(params: ProjectListParams) {
   return useQuery({
@@ -28,6 +48,7 @@ export function useProjectFormOptions(enabled: boolean) {
     queryKey: projectKeys.options(),
     queryFn: ({ signal }) => projectsApi.formOptions(signal),
     enabled,
+    staleTime: 60_000,
     retry: false,
   });
 }
@@ -36,7 +57,7 @@ export function useCreateProject() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (payload: ProjectInput) => projectsApi.create(payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
+    onSuccess: () => invalidateProjectQueries(client),
   });
 }
 
@@ -50,7 +71,7 @@ export function useUpdateProject() {
       id: string;
       payload: ProjectInput | ProjectStatusInput;
     }) => projectsApi.update(id, payload),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
+    onSuccess: () => invalidateProjectQueries(client),
   });
 }
 
@@ -58,6 +79,6 @@ export function useDeleteProject() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => projectsApi.remove(id),
-    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
+    onSuccess: () => invalidateProjectQueries(client),
   });
 }

@@ -43,6 +43,9 @@ import {
   type UpdateUserInput,
 } from "@/features/users/users-api";
 
+import { employeeKeys } from "@/features/employees/employees.queries";
+import { projectKeys } from "@/features/projects/projects.queries";
+
 interface PendingChange {
   user: ManagedUser;
   payload: UpdateUserInput;
@@ -84,10 +87,19 @@ export function UsersPage() {
     mutationFn: (change: PendingChange) =>
       usersApi.update(change.user.id, change.payload),
 
-    onSuccess: () =>
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
         queryKey: ["users"],
-      }),
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: employeeKeys.all,
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: projectKeys.options(),
+      });
+    },
   });
 
   function requestRoleChange(target: ManagedUser, nextRole: UserRole) {
