@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -185,24 +184,31 @@ export function UsersPage() {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {isPending ? (
-              <LoadingState message="Loading user accounts..." />
-            ) : isError ? (
+            {isError && !users ? (
               <ErrorState
                 title="Unable to load users"
                 message={getApiErrorMessage(error)}
                 onRetry={() => void refetch()}
                 isRetrying={isFetching}
               />
-            ) : !users?.length ? (
+            ) : !isPending && !users?.length ? (
               <EmptyState
                 icon={ShieldCheck}
                 title="No user accounts"
                 description="There are no accounts available."
               />
             ) : (
-              <div className="overflow-x-auto rounded-md border">
-                <Table>
+              <div
+                className="overflow-x-auto rounded-md border"
+                aria-busy={isPending || isFetching}
+              >
+                {isPending && (
+                  <p className="sr-only" role="status">
+                    Loading user accounts...
+                  </p>
+                )}
+
+                <Table aria-label="User accounts">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Account</TableHead>
@@ -213,81 +219,102 @@ export function UsersPage() {
                   </TableHeader>
 
                   <TableBody>
-                    {users.map((account) => {
-                      const isSelf = account.id === currentUser?.id;
-
-                      return (
-                        <TableRow key={account.id}>
-                          <TableCell>
-                            <div className="min-w-40 space-y-1">
-                              <p className="font-medium">
-                                {account.name}
-                                {isSelf && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    (You)
-                                  </span>
-                                )}
-                              </p>
-
-                              <p className="text-xs text-muted-foreground">
-                                {account.email}
-                              </p>
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <Select
-                              value={account.role}
-                              disabled={isSelf || updateMutation.isPending}
-                              onValueChange={(value) => {
-                                if (
-                                  value === "admin" ||
-                                  value === "manager" ||
-                                  value === "viewer"
-                                ) {
-                                  requestRoleChange(account, value);
-                                }
-                              }}
-                            >
-                              <SelectTrigger
-                                aria-label={`Role for ${account.name}`}
-                                className="w-32"
+                    {isPending
+                      ? // Skeleton rows during initial loading.
+                        Array.from({ length: 5 }, (_, rowIndex) => (
+                          <TableRow key={`skeleton-${rowIndex}`}>
+                            {Array.from({ length: 4 }, (_, columnIndex) => (
+                              <TableCell
+                                key={`skeleton-${rowIndex}-${columnIndex}`}
                               >
-                                <SelectValue />
-                              </SelectTrigger>
+                                <div
+                                  className="h-4 w-full animate-pulse rounded bg-muted motion-reduce:animate-none"
+                                  aria-hidden="true"
+                                />
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      : // Actual user rows once data is available.
+                        users?.map((account) => {
+                          const isSelf = account.id === currentUser?.id;
 
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="manager">Manager</SelectItem>
-                                <SelectItem value="viewer">Viewer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
+                          return (
+                            <TableRow key={account.id}>
+                              <TableCell>
+                                <div className="min-w-40 space-y-1">
+                                  <p className="font-medium">
+                                    {account.name}
+                                    {isSelf && (
+                                      <span className="ml-2 text-xs text-muted-foreground">
+                                        (You)
+                                      </span>
+                                    )}
+                                  </p>
 
-                          <TableCell>
-                            <Badge
-                              variant={
-                                account.isActive ? "outline" : "destructive"
-                              }
-                            >
-                              {account.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
+                                  <p className="text-xs text-muted-foreground">
+                                    {account.email}
+                                  </p>
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="text-right">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={isSelf || updateMutation.isPending}
-                              onClick={() => requestStatusChange(account)}
-                            >
-                              {account.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                              <TableCell>
+                                <Select
+                                  value={account.role}
+                                  disabled={isSelf || updateMutation.isPending}
+                                  onValueChange={(value) => {
+                                    if (
+                                      value === "admin" ||
+                                      value === "manager" ||
+                                      value === "viewer"
+                                    ) {
+                                      requestRoleChange(account, value);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger
+                                    aria-label={`Role for ${account.name}`}
+                                    className="w-32"
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="manager">
+                                      Manager
+                                    </SelectItem>
+                                    <SelectItem value="viewer">
+                                      Viewer
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    account.isActive ? "outline" : "destructive"
+                                  }
+                                >
+                                  {account.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isSelf || updateMutation.isPending}
+                                  onClick={() => requestStatusChange(account)}
+                                >
+                                  {account.isActive ? "Deactivate" : "Activate"}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                   </TableBody>
                 </Table>
               </div>
