@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler } from "express";
-import * as helmetModule from "helmet";
+import { createRequire } from "node:module";
+import type { RequestHandler } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
@@ -21,6 +22,10 @@ import { projectsRouter } from "./routes/projects.js";
 import { projectAssignmentsRouter } from "./routes/project-assignments.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 
+const helmet = createRequire(import.meta.url)(
+  "helmet",
+) as () => RequestHandler;
+
 export const app = express();
 
 app.disable("x-powered-by");
@@ -40,7 +45,7 @@ app.use(
   }),
 );
 
-app.use(helmetModule.default());
+app.use(helmet());
 
 app.use(
   cors({
