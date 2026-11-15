@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from "react-router";
 
 import { AppLayout } from "@/components/layout/app-layout";
-
 import { ProtectedRoute } from "@/features/auth/protected-route";
 
 import { LoginPage } from "@/pages/login-page";
@@ -12,17 +11,15 @@ import { EmployeesPage } from "@/pages/employees-page";
 import { ClientsPage } from "@/pages/clients-page";
 import { ProjectsPage } from "@/pages/projects-page";
 import { ProjectTeamPage } from "@/pages/project-team-page";
+import { UsersPage } from "@/pages/users-page";
 
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Authentication required */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          {/* Dashboard permission required */}
           <Route
             element={<ProtectedRoute requiredPermission="dashboard:read" />}
           >
@@ -45,12 +42,20 @@ export default function App() {
             <Route path="clients" element={<ClientsPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute requiredPermission="projects:read" />}>
+          <Route
+            element={<ProtectedRoute requiredPermission="projects:read" />}
+          >
             <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:projectId/team" element={<ProjectTeamPage />} />
+            <Route
+              path="projects/:projectId/team"
+              element={<ProjectTeamPage />}
+            />
           </Route>
 
-          {/* Accessible to authenticated users */}
+          <Route element={<ProtectedRoute requiredPermission="users:manage" />}>
+            <Route path="users" element={<UsersPage />} />
+          </Route>
+
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
