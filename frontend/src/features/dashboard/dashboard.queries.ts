@@ -10,8 +10,7 @@ export function useDashboardOverview() {
   return useQuery({
     queryKey: dashboardKeys.overview(),
     queryFn: ({ signal }) => dashboardApi.overview(signal),
-    staleTime: 0,
-    retry: 1,
+    staleTime: 30_000,
     refetchOnWindowFocus: true,
   });
 }

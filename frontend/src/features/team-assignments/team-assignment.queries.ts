@@ -20,6 +20,7 @@ export function useProjectTeam(projectId: string) {
     queryFn: ({ signal }) => teamAssignmentsApi.list(projectId, signal),
     enabled: Boolean(projectId),
     retry: false,
+    staleTime: 15_000,
   });
 }
 
@@ -34,6 +35,7 @@ export function useAvailableEmployees(
       teamAssignmentsApi.availableEmployees(projectId, q, signal),
     enabled: Boolean(projectId) && enabled,
     retry: false,
+    staleTime: 15_000,
   });
 }
 

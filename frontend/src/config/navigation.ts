@@ -5,6 +5,7 @@ import {
   UsersRound,
   BriefcaseBusiness,
   FolderKanban,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,7 +28,6 @@ export interface NavigationBreadcrumb {
   href?: string;
 }
 
-// Main application navigation, shared by the sidebar and top-bar breadcrumbs.
 export const navigationGroups: NavigationGroup[] = [
   {
     label: "Workspace",
@@ -74,9 +74,19 @@ export const navigationGroups: NavigationGroup[] = [
       },
     ],
   },
+  {
+    label: "Administration",
+    items: [
+      {
+        label: "Users & Roles",
+        href: "/users",
+        icon: ShieldCheck,
+        permission: "users:manage",
+      },
+    ],
+  },
 ];
 
-// Account navigation (sign-out is an action handled by AppSidebar, not a route).
 export const accountNavigation: NavigationItem[] = [
   {
     label: "Settings",
@@ -90,41 +100,58 @@ export function isNavigationActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Shared page metadata for existing consumers.
 export function findNavigationItem(pathname: string) {
   for (const group of navigationGroups) {
     const item = group.items.find((entry) =>
       isNavigationActive(pathname, entry.href),
     );
 
-    if (item) return { group: group.label, item };
+    if (item) {
+      return {
+        group: group.label,
+        item,
+      };
+    }
   }
 
   const accountItem = accountNavigation.find((entry) =>
     isNavigationActive(pathname, entry.href),
   );
 
-  if (accountItem) return { group: "Account", item: accountItem };
+  if (accountItem) {
+    return {
+      group: "Account",
+      item: accountItem,
+    };
+  }
+
   return null;
 }
 
-/**
- * Build meaningful breadcrumbs for known routes without displaying raw IDs.
- * `/projects/:projectId/team` is currently the only nested content route.
- */
 export function getNavigationBreadcrumbs(
   pathname: string,
 ): NavigationBreadcrumb[] {
   const page = findNavigationItem(pathname);
-  if (!page) return [{ label: "Workspace" }];
+
+  if (!page) {
+    return [{ label: "Workspace" }];
+  }
 
   const breadcrumbs: NavigationBreadcrumb[] = [{ label: page.group }];
 
   if (/^\/projects\/[^/]+\/team\/?$/.test(pathname)) {
-    breadcrumbs.push({ label: "Projects", href: "/projects" });
-    breadcrumbs.push({ label: "Project team" });
+    breadcrumbs.push({
+      label: "Projects",
+      href: "/projects",
+    });
+
+    breadcrumbs.push({
+      label: "Project team",
+    });
   } else {
-    breadcrumbs.push({ label: page.item.label });
+    breadcrumbs.push({
+      label: page.item.label,
+    });
   }
 
   return breadcrumbs;

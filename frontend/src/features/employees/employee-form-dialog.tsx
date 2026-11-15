@@ -95,6 +95,7 @@ export function EmployeeFormDialog({
     try {
       await onSave({
         ...values,
+        userId: values.userId || null,
         joiningDate: values.joiningDate || null,
       });
     } catch (error) {

@@ -79,3 +79,6 @@ app.use(notFound);
 
 // Global error handler (always last)
 app.use(errorHandler);
+
+
+export default app;
