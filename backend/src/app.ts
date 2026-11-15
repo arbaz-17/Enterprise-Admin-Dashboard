@@ -1,5 +1,5 @@
 import express, { type ErrorRequestHandler } from "express";
-import helmet from "helmet";
+import * as helmetModule from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
@@ -40,7 +40,7 @@ app.use(
   }),
 );
 
-app.use(helmet());
+app.use(helmetModule.default());
 
 app.use(
   cors({
