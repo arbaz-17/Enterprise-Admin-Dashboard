@@ -1,6 +1,6 @@
-import express, { type ErrorRequestHandler } from "express";
-import { createRequire } from "node:module";
-import type { RequestHandler } from "express";
+
+import express, { type RequestHandler } from "express";
+import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
@@ -22,14 +22,16 @@ import { projectsRouter } from "./routes/projects.js";
 import { projectAssignmentsRouter } from "./routes/project-assignments.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 
-const helmet = createRequire(import.meta.url)(
-  "helmet",
-) as () => RequestHandler;
+// Helmet provides a default-exported middleware factory.
+// The assertion handles Vercel's TypeScript import typing mismatch,
+// while retaining a static import for serverless dependency bundling.
+const createHelmet = helmet as unknown as () => RequestHandler;
 
 export const app = express();
 
 app.disable("x-powered-by");
 
+// Request logging
 app.use(
   pinoHttp({
     logger,
@@ -45,8 +47,10 @@ app.use(
   }),
 );
 
-app.use(helmet());
+// Security headers
+app.use(createHelmet());
 
+// CORS
 app.use(
   cors({
     origin: env.FRONTEND_ORIGIN,
@@ -54,6 +58,7 @@ app.use(
   }),
 );
 
+// Global API rate limiting
 app.use(
   "/api",
   rateLimit({
@@ -76,14 +81,17 @@ app.use("/api/departments", departmentsRouter);
 app.use("/api/employees", employeesRouter);
 app.use("/api/clients", clientsRouter);
 app.use("/api/dashboard", dashboardRouter);
-app.use("/api/projects/:projectId/assignments", projectAssignmentsRouter);
+app.use(
+  "/api/projects/:projectId/assignments",
+  projectAssignmentsRouter,
+);
 app.use("/api/projects", projectsRouter);
 
-// 404 handler (after all API routes)
+// 404 handler
 app.use(notFound);
 
-// Global error handler (always last)
+// Global error handler
 app.use(errorHandler);
 
-
+// Vercel Express entry point
 export default app;
