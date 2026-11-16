@@ -75,7 +75,15 @@ function clearRefreshCookie(res: Response): void {
  * Used by both login and refresh to keep
  * their response formats consistent.
  */
-function sendAuthResponse(res: Response, credentials: AuthCredentials): void {
+
+function sendAuthResponse(
+  res: Response,
+  credentials: AuthCredentials,
+): void {
+  // Never cache a response containing access tokens.
+  res.setHeader("Cache-Control", "no-store");
+
+  // Preserve the existing secure refresh cookie.
   res.cookie(
     REFRESH_COOKIE_NAME,
     credentials.refreshToken,
@@ -86,9 +94,15 @@ function sendAuthResponse(res: Response, credentials: AuthCredentials): void {
     accessToken: credentials.accessToken,
     tokenType: "Bearer",
     expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+
+    // User already retrieved and validated by backend.
     user: credentials.user,
+
+    // Derive permissions from the current database role.
+    permissions: getPermissions(credentials.user.role),
   });
 }
+
 
 /**
  * Send the standard invalid-session response

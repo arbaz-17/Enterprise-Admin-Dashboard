@@ -28,12 +28,16 @@ export interface LoginCredentials {
   password: string;
 }
 
+
 export interface AuthResponse {
   accessToken: string;
   tokenType: "Bearer";
   expiresIn: number;
+
   user: AuthUser;
+  permissions: Permission[];
 }
+
 
 export interface CurrentUserResponse {
   user: AuthUser;

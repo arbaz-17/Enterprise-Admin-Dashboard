@@ -1,4 +1,9 @@
-import { apiClient, sessionClient, refreshAccessToken } from "@/lib/api-client";
+
+import {
+  apiClient,
+  sessionClient,
+  refreshAccessToken,
+} from "@/lib/api-client";
 
 import type {
   LoginCredentials,
@@ -7,11 +12,14 @@ import type {
 } from "./auth.types";
 
 export const authApi = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const { data } = await sessionClient.post<AuthResponse>(
-      "/auth/login",
-      credentials,
-    );
+  async login(
+    credentials: LoginCredentials,
+  ): Promise<AuthResponse> {
+    const { data } =
+      await sessionClient.post<AuthResponse>(
+        "/auth/login",
+        credentials,
+      );
 
     return data;
   },
@@ -20,8 +28,12 @@ export const authApi = {
     return refreshAccessToken();
   },
 
+  // Retained for explicit user/session revalidation.
   async getCurrentUser(): Promise<CurrentUserResponse> {
-    const { data } = await apiClient.get<CurrentUserResponse>("/auth/me");
+    const { data } =
+      await apiClient.get<CurrentUserResponse>(
+        "/auth/me",
+      );
 
     return data;
   },
@@ -31,17 +43,21 @@ export const authApi = {
   },
 };
 
-// Prevent duplicate session restoration requests
-let restorePromise: Promise<CurrentUserResponse> | null = null;
+// Prevent duplicate restoration requests.
+let restorePromise: Promise<CurrentUserResponse> | null =
+  null;
 
 export function restoreSession(): Promise<CurrentUserResponse> {
   if (!restorePromise) {
-    restorePromise = (async () => {
-      await authApi.refresh();
-      return authApi.getCurrentUser();
-    })().finally(() => {
-      restorePromise = null;
-    });
+    restorePromise = authApi
+      .refresh()
+      .then(({ user, permissions }) => ({
+        user,
+        permissions,
+      }))
+      .finally(() => {
+        restorePromise = null;
+      });
   }
 
   return restorePromise;

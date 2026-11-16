@@ -60,22 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [establishSession, clearSession]);
 
-  const login = useCallback(
-    async (credentials: LoginCredentials) => {
-      const response = await authApi.login(credentials);
 
-      setAccessToken(response.accessToken);
+const login = useCallback(
+  async (credentials: LoginCredentials) => {
+    // One request returns the token, user and permissions.
+    const response = await authApi.login(credentials);
 
-      try {
-        const data = await authApi.getCurrentUser();
-        establishSession(data);
-      } catch (error) {
-        clearSession(isSessionInvalid(error) ? "unauthenticated" : "error");
-        throw error;
-      }
-    },
-    [establishSession, clearSession],
-  );
+    // Keep the access token in memory.
+    setAccessToken(response.accessToken);
+
+    // Establish the session without calling /auth/me.
+    establishSession(response);
+  },
+  [establishSession],
+);
+
 
   const logout = useCallback(async () => {
     // Only clear the local session after backend confirmation.
