@@ -34,6 +34,33 @@ export interface DashboardOverview {
   generatedAt: string;
 }
 
+// Existing combined response (temporary compatibility).
 export interface DashboardOverviewResponse {
   data: DashboardOverview;
+}
+
+// Independent endpoint responses.
+// Pick ensures the data types stay consistent with DashboardOverview.
+
+export interface DashboardMetricsResponse {
+  data: Pick<DashboardOverview, "metrics" | "generatedAt">;
+}
+
+export interface DashboardMonthlyActivityResponse {
+  data: Pick<DashboardOverview, "monthlyActivity" | "generatedAt">;
+}
+
+export interface DashboardProjectStatusResponse {
+  data: Pick<DashboardOverview, "projectStatus" | "generatedAt">;
+}
+
+export interface DashboardDepartmentsResponse {
+  data: Pick<DashboardOverview, "departments" | "generatedAt">;
+}
+
+export interface DashboardRecentProjectsResponse {
+  data: Pick<
+    DashboardOverview,
+    "recentProjects" | "canViewProjects" | "generatedAt"
+  >;
 }
