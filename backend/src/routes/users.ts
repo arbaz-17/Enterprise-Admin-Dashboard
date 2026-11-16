@@ -5,6 +5,9 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { requirePermission } from "../middleware/require-permission.js";
 import { requireTrustedOrigin } from "../middleware/trusted-origin.js";
 
+import { listUsersQuerySchema } from "../modules/users/schemas.js";
+import { createPagination } from "../lib/pagination.js";
+
 // Schemas
 import { paramsSchema, updateUserSchema } from "../modules/users/schemas.js";
 
@@ -23,13 +26,37 @@ usersRouter.use(requireAuth);
 // List public user information.
 // ============================================================
 
-usersRouter.get("/", requirePermission("users:read"), async (_req, res) => {
-  const records = await listUsers();
 
-  res.status(200).json({
-    users: records,
-  });
-});
+usersRouter.get(
+  "/",
+  requirePermission("users:read"),
+  async (req, res) => {
+    const parsed = listUsersQuerySchema.safeParse(req.query);
+
+    if (!parsed.success) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid user filters",
+        },
+      });
+      return;
+    }
+
+    const { page, pageSize } = parsed.data;
+    const { records, total } = await listUsers(parsed.data);
+
+    res.status(200).json({
+      users: records,
+      pagination: createPagination({
+        page,
+        pageSize,
+        total,
+      }),
+    });
+  },
+);
+
 
 // ============================================================
 // PATCH /api/users/:id

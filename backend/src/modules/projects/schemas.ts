@@ -88,3 +88,6 @@ export const managerUpdateSchema = z
 // TypeScript type derived from the Zod schema
 export type ProjectFields = z.infer<typeof projectFields>;
 export type ProjectListQuery = z.infer<typeof listQuerySchema>;
+export type CreateProjectInput = z.infer<
+  typeof createProjectSchema
+>;

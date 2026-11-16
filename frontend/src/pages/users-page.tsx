@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,23 +65,40 @@ export function UsersPage() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
 
+  const [page, setPage] = useState(1);
+  const [searchDraft, setSearchDraft] = useState("");
+  const [search, setSearch] = useState("");
+
+  const pageSize = 20;
+
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(
     null,
   );
 
   const {
-    data: users,
+    data: userData,
     isPending,
     isError,
     error,
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["users", "list"],
-    queryFn: ({ signal }) => usersApi.list(signal),
+    queryKey: ["users", "list", { page, pageSize, q: search }],
+    queryFn: ({ signal }) =>
+      usersApi.list(
+        {
+          page,
+          pageSize,
+          q: search || undefined,
+        },
+        signal,
+      ),
     staleTime: 30_000,
     retry: false,
   });
+
+  const users = userData?.users;
+  const pagination = userData?.pagination;
 
   const updateMutation = useMutation({
     mutationFn: (change: PendingChange) =>
@@ -177,13 +195,51 @@ export function UsersPage() {
             </CardTitle>
 
             <CardDescription>
-              {users
-                ? `${users.length} account${users.length === 1 ? "" : "s"} found`
+              {pagination
+                ? `${pagination.total} account${pagination.total === 1 ? "" : "s"} found`
                 : "Review and manage existing login accounts."}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
+            <form
+              role="search"
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setPage(1);
+                setSearch(searchDraft.trim());
+              }}
+            >
+              <Input
+                type="search"
+                aria-label="Search users"
+                placeholder="Search by name or email..."
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+                maxLength={100}
+                className="min-w-48 flex-1"
+              />
+
+              <Button type="submit" variant="outline">
+                Search
+              </Button>
+
+              {search && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearch("");
+                    setSearchDraft("");
+                    setPage(1);
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </form>
+
             {isError && !users ? (
               <ErrorState
                 title="Unable to load users"

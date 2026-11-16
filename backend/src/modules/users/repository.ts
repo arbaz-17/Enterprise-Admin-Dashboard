@@ -5,7 +5,12 @@ import {
   eq,
   isNull,
   sql,
+  ilike,
+  or,
 } from "drizzle-orm";
+
+import { escapeLike } from "../../lib/search.js";
+import type { ListUsersQuery, UpdateUserInput } from "./schemas.js";
 
 import { db } from "../../db/index.js";
 
@@ -13,8 +18,6 @@ import {
   users,
   refreshSessions,
 } from "../../db/schema.js";
-
-import type { UpdateUserInput } from "./schemas.js";
 
 // ============================================================
 // TYPES AND PROJECTIONS
@@ -67,12 +70,31 @@ interface UserAdministrationTransaction {
  *
  * Preserve the existing 100-user limit.
  */
-export async function listUsers() {
-  return db
+
+export async function listUsers(query: ListUsersQuery) {
+  const { page, pageSize, q } = query;
+
+  const pattern = `%${escapeLike(q)}%`;
+
+  const filter = q
+    ? or(
+        ilike(users.name, pattern),
+        ilike(users.email, pattern),
+      )
+    : undefined;
+
+  // Keep reads sequential for the existing DB pool.
+  const records = await db
     .select(publicUserFields)
     .from(users)
+    .where(filter)
     .orderBy(asc(users.name), asc(users.id))
-    .limit(100);
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const total = await db.$count(users, filter);
+
+  return { records, total };
 }
 
 // ============================================================
