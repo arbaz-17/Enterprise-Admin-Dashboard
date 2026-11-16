@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { lazy, type ReactNode } from "react";
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -12,11 +12,7 @@ import { Link } from "react-router";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import {
-  MonthlyActivityChart,
-  ProjectStatusChart,
-  DepartmentChart,
-} from "@/components/dashboard/dashboard-charts";
+import { DeferredChart } from "@/components/dashboard/deferred-chart";
 import {
   StatCardSkeleton,
   MonthlyActivitySkeleton,
@@ -47,6 +43,24 @@ import type {
   ProjectStatus,
 } from "@/features/dashboard/dashboard.types";
 import { getApiErrorMessage } from "@/lib/api-error";
+
+const MonthlyActivityChart = lazy(() =>
+  import("@/components/dashboard/dashboard-charts").then((module) => ({
+    default: module.MonthlyActivityChart,
+  })),
+);
+
+const ProjectStatusChart = lazy(() =>
+  import("@/components/dashboard/dashboard-charts").then((module) => ({
+    default: module.ProjectStatusChart,
+  })),
+);
+
+const DepartmentChart = lazy(() =>
+  import("@/components/dashboard/dashboard-charts").then((module) => ({
+    default: module.DepartmentChart,
+  })),
+);
 
 const statusLabels: Record<ProjectStatus, string> = {
   planning: "Planning",
@@ -345,7 +359,9 @@ export function DashboardPage() {
             query={activityQuery}
             skeleton={<MonthlyActivitySkeleton />}
             render={({ data }) => (
-              <MonthlyActivityChart data={data.monthlyActivity} />
+              <DeferredChart fallback={<MonthlyActivitySkeleton />}>
+                <MonthlyActivityChart data={data.monthlyActivity} />
+              </DeferredChart>
             )}
           />
         </div>
@@ -360,7 +376,9 @@ export function DashboardPage() {
             query={statusQuery}
             skeleton={<ProjectStatusSkeleton />}
             render={({ data }) => (
-              <ProjectStatusChart data={data.projectStatus} />
+              <DeferredChart fallback={<ProjectStatusSkeleton />}>
+                <ProjectStatusChart data={data.projectStatus} />
+              </DeferredChart>
             )}
           />
         </div>
@@ -380,7 +398,11 @@ export function DashboardPage() {
             description="Current employee distribution across departments."
             query={departmentsQuery}
             skeleton={<DepartmentSkeleton />}
-            render={({ data }) => <DepartmentChart data={data.departments} />}
+            render={({ data }) => (
+              <DeferredChart fallback={<DepartmentSkeleton />}>
+                <DepartmentChart data={data.departments} />
+              </DeferredChart>
+            )}
           />
         </div>
 
