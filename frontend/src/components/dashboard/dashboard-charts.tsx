@@ -27,16 +27,15 @@ import {
 } from "@/components/ui/chart";
 
 import type {
-  DashboardOverview,
+  DepartmentCount,
+  MonthlyActivityPoint,
   ProjectStatus,
+  ProjectStatusCount,
 } from "@/features/dashboard/dashboard.types";
 
-// Shared chart types
-type MonthlyActivity = DashboardOverview["monthlyActivity"];
-
-type ProjectStatusData = DashboardOverview["projectStatus"];
-
-type DepartmentData = DashboardOverview["departments"];
+type MonthlyActivity = MonthlyActivityPoint[];
+type ProjectStatusData = ProjectStatusCount[];
+type DepartmentData = DepartmentCount[];
 
 // Chart colors and labels
 const monthlyConfig = {

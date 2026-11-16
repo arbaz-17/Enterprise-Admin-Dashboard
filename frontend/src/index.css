@@ -4,10 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ========================================
-   ENTERPRISE ADMIN DASHBOARD
-   LIGHT THEME
-======================================== */
 
 :root {
   color-scheme: light;
@@ -51,7 +47,7 @@
 
   /* Sidebar */
   /* Sidebar — Light Mode */
-  --sidebar: #fe6807;
+  --sidebar: #fe6a07;
   --sidebar-foreground: #211307;
 
   --sidebar-primary: #ffffff;
@@ -68,9 +64,7 @@
   --sidebar-muted: #552708;
 }
 
-/* ========================================
-   DARK THEME
-======================================== */
+
 
 .dark {
   color-scheme: dark;
@@ -220,9 +214,6 @@
 }
 
 
-/* ========================================
-   BRAND SIDEBAR NAVIGATION
-======================================== */
 
 @layer components {
   .brand-nav-item {

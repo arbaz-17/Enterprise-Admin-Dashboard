@@ -1,62 +1,58 @@
-import { Router } from "express";
-import { z } from "zod";
-import { asc, eq, ilike, sql, desc } from "drizzle-orm";
+import { Router, type Response } from "express";
 
-import { db } from "../db/index.js";
-import { departments } from "../db/schema.js";
-
+// Middleware
 import { requireAuth } from "../middleware/require-auth.js";
 import { requirePermission } from "../middleware/require-permission.js";
 import { requireTrustedOrigin } from "../middleware/trusted-origin.js";
 
+// Schemas
+import {
+  idParamsSchema,
+  listQuerySchema,
+  createDepartmentSchema,
+  updateDepartmentSchema,
+} from "../modules/departments/schemas.js";
+
+// Repository
+import {
+  listDepartments,
+  getDepartmentById,
+  createDepartmentRecord,
+  updateDepartmentRecord,
+  deleteDepartmentRecord,
+} from "../modules/departments/repository.js";
+
+// Shared utilities
+import { getPostgresErrorCode } from "../lib/postgres-error.js";
+import { createPagination } from "../lib/pagination.js";
+
 export const departmentsRouter = Router();
 
-// Every department endpoint requires authentication.
+// All department endpoints require authentication.
 departmentsRouter.use(requireAuth);
 
-// Query validation for search and pagination.
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  q: z.string().trim().max(100).optional(),
-  sortBy: z.enum(["name", "description", "createdAt"]).default("name"),
-
-  sortDir: z.enum(["asc", "desc"]).default("asc"),
-});
-
-const descriptionSchema = z
-  .string()
-  .trim()
-  .max(500, "Description must be 500 characters or fewer")
-  .transform((value) => value || null)
-  .nullable();
-
-const createDepartmentSchema = z.strictObject({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Department name is required")
-    .max(100, "Department name must be 100 characters or fewer"),
-
-  description: descriptionSchema.optional(),
-});
-
-const updateDepartmentSchema = createDepartmentSchema.partial().refine(
-  (value) => Object.keys(value).length > 0,
-
-  "Provide at least one field to update",
-);
-
-const idParamsSchema = z.object({
-  id: z.uuid(),
-});
+// ============================================================
+// SHARED ERROR RESPONSE
+// ============================================================
 
 /**
- * GET /api/departments
- *
- * Query:
- * ?page=1&pageSize=20&q=engineering
+ * Used by both POST and PATCH when the department
+ * name violates a database unique constraint.
  */
+function sendDuplicateDepartmentError(res: Response): void {
+  res.status(409).json({
+    error: {
+      code: "DEPARTMENT_ALREADY_EXISTS",
+      message: "A department with this name already exists",
+    },
+  });
+}
+
+// ============================================================
+// GET /api/departments
+// List departments with search, sorting and pagination.
+// ============================================================
+
 departmentsRouter.get(
   "/",
   requirePermission("departments:read"),
@@ -73,48 +69,26 @@ departmentsRouter.get(
       return;
     }
 
-    const { page, pageSize, q, sortBy, sortDir } = parsed.data;
+    const { page, pageSize } = parsed.data;
 
-    const sortColumns = {
-      name: departments.name,
-      description: departments.description,
-      createdAt: departments.createdAt,
-    };
-
-    const sortColumn = sortColumns[sortBy];
-
-    const filter = q ? ilike(departments.name, `%${q}%`) : undefined;
-
-    const records = await db
-      .select()
-      .from(departments)
-      .where(filter)
-      .orderBy(
-        sortDir === "desc" ? desc(sortColumn) : asc(sortColumn),
-        asc(departments.id),
-      )
-      .limit(pageSize)
-      .offset((page - 1) * pageSize);
-
-    const total = await db.$count(departments, filter);
+    const { records, total } = await listDepartments(parsed.data);
 
     res.status(200).json({
       data: records,
-      pagination: {
+      pagination: createPagination({
         page,
         pageSize,
         total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      }),
     });
   },
 );
 
-/**
- * GET /api/departments/:id
- *
- * Fetch one department by UUID.
- */
+// ============================================================
+// GET /api/departments/:id
+// Fetch a department by UUID.
+// ============================================================
+
 departmentsRouter.get(
   "/:id",
   requirePermission("departments:read"),
@@ -131,11 +105,7 @@ departmentsRouter.get(
       return;
     }
 
-    const [department] = await db
-      .select()
-      .from(departments)
-      .where(eq(departments.id, parsed.data.id))
-      .limit(1);
+    const department = await getDepartmentById(parsed.data.id);
 
     if (!department) {
       res.status(404).json({
@@ -153,7 +123,11 @@ departmentsRouter.get(
   },
 );
 
+// ============================================================
 // POST /api/departments
+// Create a department.
+// ============================================================
+
 departmentsRouter.post(
   "/",
   requireTrustedOrigin,
@@ -172,23 +146,14 @@ departmentsRouter.post(
     }
 
     try {
-      const [department] = await db
-        .insert(departments)
-        .values(parsed.data)
-        .returning();
+      const department = await createDepartmentRecord(parsed.data);
 
-      res
-        .location(`/api/departments/${department.id}`)
-        .status(201)
-        .json({ data: department });
+      res.location(`/api/departments/${department.id}`).status(201).json({
+        data: department,
+      });
     } catch (error) {
       if (getPostgresErrorCode(error) === "23505") {
-        res.status(409).json({
-          error: {
-            code: "DEPARTMENT_ALREADY_EXISTS",
-            message: "A department with this name already exists",
-          },
-        });
+        sendDuplicateDepartmentError(res);
         return;
       }
 
@@ -197,7 +162,11 @@ departmentsRouter.post(
   },
 );
 
+// ============================================================
 // PATCH /api/departments/:id
+// Update an existing department.
+// ============================================================
+
 departmentsRouter.patch(
   "/:id",
   requireTrustedOrigin,
@@ -217,14 +186,10 @@ departmentsRouter.patch(
     }
 
     try {
-      const [department] = await db
-        .update(departments)
-        .set({
-          ...body.data,
-          updatedAt: sql`now()`,
-        })
-        .where(eq(departments.id, params.data.id))
-        .returning();
+      const department = await updateDepartmentRecord(
+        params.data.id,
+        body.data,
+      );
 
       if (!department) {
         res.status(404).json({
@@ -241,12 +206,7 @@ departmentsRouter.patch(
       });
     } catch (error) {
       if (getPostgresErrorCode(error) === "23505") {
-        res.status(409).json({
-          error: {
-            code: "DEPARTMENT_ALREADY_EXISTS",
-            message: "A department with this name already exists",
-          },
-        });
+        sendDuplicateDepartmentError(res);
         return;
       }
 
@@ -255,7 +215,11 @@ departmentsRouter.patch(
   },
 );
 
+// ============================================================
 // DELETE /api/departments/:id
+// Delete department if no dependent records prevent it.
+// ============================================================
+
 departmentsRouter.delete(
   "/:id",
   requireTrustedOrigin,
@@ -274,10 +238,7 @@ departmentsRouter.delete(
     }
 
     try {
-      const [deleted] = await db
-        .delete(departments)
-        .where(eq(departments.id, parsed.data.id))
-        .returning({ id: departments.id });
+      const deleted = await deleteDepartmentRecord(parsed.data.id);
 
       if (!deleted) {
         res.status(404).json({
@@ -305,21 +266,3 @@ departmentsRouter.delete(
     }
   },
 );
-
-function getPostgresErrorCode(error: unknown): string | null {
-  let current: unknown = error;
-
-  for (let depth = 0; depth < 3; depth++) {
-    if (!current || typeof current !== "object") {
-      return null;
-    }
-
-    if ("code" in current && typeof current.code === "string") {
-      return current.code;
-    }
-
-    current = "cause" in current ? current.cause : null;
-  }
-
-  return null;
-}

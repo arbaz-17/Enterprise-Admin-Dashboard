@@ -8,7 +8,7 @@ function Placeholder({ className = "" }: { className?: string }) {
   return <Skeleton className={`motion-reduce:animate-none ${className}`} />;
 }
 
-function StatCardSkeleton() {
+export function StatCardSkeleton() {
   return (
     <Card className="min-w-0 gap-0 py-4">
       <CardContent className="px-5">
@@ -26,7 +26,7 @@ function StatCardSkeleton() {
   );
 }
 
-function ChartHeaderSkeleton({ titleWidth = "w-44" }: { titleWidth?: string }) {
+export function ChartHeaderSkeleton({ titleWidth = "w-44" }: { titleWidth?: string }) {
   return (
     <CardHeader>
       <Placeholder className={`h-5 ${titleWidth} max-w-full`} />
@@ -35,7 +35,7 @@ function ChartHeaderSkeleton({ titleWidth = "w-44" }: { titleWidth?: string }) {
   );
 }
 
-function MonthlyActivitySkeleton() {
+export function MonthlyActivitySkeleton() {
   const barHeights = [42, 66, 53, 78, 62, 88];
 
   return (
@@ -85,7 +85,7 @@ function MonthlyActivitySkeleton() {
   );
 }
 
-function ProjectStatusSkeleton() {
+export function ProjectStatusSkeleton() {
   return (
     <Card className="min-w-0">
       <ChartHeaderSkeleton titleWidth="w-32" />
@@ -120,7 +120,7 @@ function ProjectStatusSkeleton() {
   );
 }
 
-function DepartmentSkeleton() {
+export function DepartmentSkeleton() {
   const barWidths = ["w-[72%]", "w-[88%]", "w-[56%]", "w-[76%]", "w-[42%]"];
 
   return (
@@ -146,7 +146,7 @@ function DepartmentSkeleton() {
   );
 }
 
-function RecentProjectsSkeleton() {
+export function RecentProjectsSkeleton() {
   return (
     <Card className="min-w-0 xl:col-span-3">
       <CardHeader>
