@@ -4,9 +4,6 @@ import { dashboardApi } from "./dashboard-api";
 export const dashboardKeys = {
   all: ["dashboard"] as const,
 
-  // Existing key: retained temporarily.
-  overview: () => [...dashboardKeys.all, "overview"] as const,
-
   metrics: () => [...dashboardKeys.all, "metrics"] as const,
 
   monthlyActivity: () => [...dashboardKeys.all, "monthly-activity"] as const,
@@ -25,15 +22,6 @@ const dashboardQueryOptions = {
   retry: 1,
 } as const;
 
-// Existing query: retained until Phase 3.
-export function useDashboardOverview() {
-  return useQuery({
-    queryKey: dashboardKeys.overview(),
-    queryFn: ({ signal }) => dashboardApi.overview(signal),
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-  });
-}
 
 export function useDashboardMetrics() {
   return useQuery({

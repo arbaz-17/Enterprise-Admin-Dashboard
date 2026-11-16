@@ -230,31 +230,3 @@ dashboardRouter.get(
     });
   },
 );
-
-// Temporary backwards compatibility for the current dashboard frontend.
-// Remove after Phase 3 migrates to the independent endpoints.
-dashboardRouter.get(
-  "/overview",
-  requirePermission("dashboard:read"),
-  async (req, res) => {
-    const metrics = await getMetrics();
-    const monthlyActivity = await getMonthlyActivity();
-    const projectStatus = await getProjectStatus();
-    const departments = await getDepartments();
-    const { recentProjects, canViewProjects } = await getRecentProjects(
-      req.authUser!.role,
-    );
-
-    res.status(200).json({
-      data: {
-        metrics,
-        monthlyActivity,
-        projectStatus,
-        departments,
-        recentProjects,
-        canViewProjects,
-        generatedAt: new Date().toISOString(),
-      },
-    });
-  },
-);

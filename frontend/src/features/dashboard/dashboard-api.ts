@@ -1,7 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 
 import type {
-  DashboardOverviewResponse,
   DashboardMetricsResponse,
   DashboardMonthlyActivityResponse,
   DashboardProjectStatusResponse,
@@ -10,14 +9,6 @@ import type {
 } from "./dashboard.types";
 
 export const dashboardApi = {
-  // Existing endpoint: retained until the dashboard UI is migrated.
-  async overview(signal?: AbortSignal): Promise<DashboardOverviewResponse> {
-    const { data } = await apiClient.get<DashboardOverviewResponse>(
-      "/dashboard/overview",
-      { signal },
-    );
-    return data;
-  },
 
   async metrics(signal?: AbortSignal): Promise<DashboardMetricsResponse> {
     const { data } = await apiClient.get<DashboardMetricsResponse>(

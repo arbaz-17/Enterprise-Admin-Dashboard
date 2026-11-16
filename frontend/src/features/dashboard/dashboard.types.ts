@@ -1,66 +1,79 @@
-export type ProjectStatus = "planning" | "active" | "on_hold" | "completed";
 
-export interface DashboardOverview {
-  metrics: {
-    employees: number;
-    departments: number;
-    clients: number;
-    totalProjects: number;
-    activeProjects: number;
-    completedProjects: number;
-  };
-  monthlyActivity: Array<{
-    yearMonth: string;
-    month: string;
-    created: number;
-    completed: number;
-  }>;
-  projectStatus: Array<{
-    status: ProjectStatus;
-    count: number;
-  }>;
-  departments: Array<{
-    name: string;
-    employees: number;
-  }>;
-  recentProjects: Array<{
-    id: string;
-    name: string;
-    status: ProjectStatus;
-    clientName: string;
-    updatedAt: string;
-  }>;
+export type ProjectStatus =
+  | "planning"
+  | "active"
+  | "on_hold"
+  | "completed";
+
+export interface DashboardMetrics {
+  employees: number;
+  departments: number;
+  clients: number;
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+}
+
+export interface MonthlyActivityPoint {
+  yearMonth: string;
+  month: string;
+  created: number;
+  completed: number;
+}
+
+export interface ProjectStatusCount {
+  status: ProjectStatus;
+  count: number;
+}
+
+export interface DepartmentCount {
+  name: string;
+  employees: number;
+}
+
+export interface RecentProject {
+  id: string;
+  name: string;
+  status: ProjectStatus;
+  clientName: string;
+  updatedAt: string;
+}
+
+export interface RecentProjectsData {
+  recentProjects: RecentProject[];
   canViewProjects: boolean;
-  generatedAt: string;
 }
-
-// Existing combined response (temporary compatibility).
-export interface DashboardOverviewResponse {
-  data: DashboardOverview;
-}
-
-// Independent endpoint responses.
-// Pick ensures the data types stay consistent with DashboardOverview.
 
 export interface DashboardMetricsResponse {
-  data: Pick<DashboardOverview, "metrics" | "generatedAt">;
+  data: {
+    metrics: DashboardMetrics;
+    generatedAt: string;
+  };
 }
 
 export interface DashboardMonthlyActivityResponse {
-  data: Pick<DashboardOverview, "monthlyActivity" | "generatedAt">;
+  data: {
+    monthlyActivity: MonthlyActivityPoint[];
+    generatedAt: string;
+  };
 }
 
 export interface DashboardProjectStatusResponse {
-  data: Pick<DashboardOverview, "projectStatus" | "generatedAt">;
+  data: {
+    projectStatus: ProjectStatusCount[];
+    generatedAt: string;
+  };
 }
 
 export interface DashboardDepartmentsResponse {
-  data: Pick<DashboardOverview, "departments" | "generatedAt">;
+  data: {
+    departments: DepartmentCount[];
+    generatedAt: string;
+  };
 }
 
 export interface DashboardRecentProjectsResponse {
-  data: Pick<
-    DashboardOverview,
-    "recentProjects" | "canViewProjects" | "generatedAt"
-  >;
+  data: RecentProjectsData & {
+    generatedAt: string;
+  };
 }

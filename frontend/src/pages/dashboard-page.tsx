@@ -43,7 +43,7 @@ import {
   useDashboardRecentProjects,
 } from "@/features/dashboard/dashboard.queries";
 import type {
-  DashboardOverview,
+  RecentProjectsData,
   ProjectStatus,
 } from "@/features/dashboard/dashboard.types";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -171,7 +171,7 @@ function DashboardWidget<TData>({
 function RecentProjects({
   recentProjects,
   canViewProjects,
-}: Pick<DashboardOverview, "recentProjects" | "canViewProjects">) {
+}: RecentProjectsData) {
   return (
     <Card className="min-w-0">
       <CardHeader>
