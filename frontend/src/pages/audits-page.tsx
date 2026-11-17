@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ScrollText, ShieldCheck } from "lucide-react";
 
 import { DataTable } from "@/components/dashboard/data-table";
-import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
 
 import { PageHeader } from "@/components/layout/page-header";
 
@@ -25,18 +24,16 @@ import { Switch } from "@/components/ui/switch";
 import { getApiErrorMessage } from "@/lib/api-error";
 
 import { auditColumns } from "@/features/audits/audit-columns";
-import { formatEnumLabel } from "@/lib/formatters/text";
 
 import { useAuditLogs } from "@/features/audits/audits.queries";
 
+import type { AuditLog } from "@/features/audits/audits.types";
+import { AuditFiltersControl } from "@/features/audits/audit-filters";
 import {
-  AUDIT_ACTIONS,
-  AUDIT_RESOURCE_TYPES,
-  type AuditAction,
-  type AuditLog,
-  type AuditOutcome,
-  type AuditResourceType,
-} from "@/features/audits/audits.types";
+  EMPTY_AUDIT_FILTERS,
+  filterAuditLogs,
+  type AuditFilters,
+} from "@/features/audits/audits.filters";
 
 // Keep stable references when data hasn't loaded.
 const EMPTY_LOGS: AuditLog[] = [];
@@ -51,60 +48,29 @@ export function AuditsPage() {
   const { data, isPending, isError, isFetching, error, refetch } =
     useAuditLogs();
 
-  const [search, setSearch] = useState("");
+  // --------------------------------------------------
+  // Local filter state
+  // --------------------------------------------------
 
-  const [outcome, setOutcome] = useState<AuditOutcome | "">("");
+  const [filters, setFilters] = useState<AuditFilters>({
+    ...EMPTY_AUDIT_FILTERS,
+  });
 
-  const [action, setAction] = useState<AuditAction | "">("");
-
-  const [resourceType, setResourceType] = useState<AuditResourceType | "">("");
+  // Virtualization is enabled by default.
   const [virtualize, setVirtualize] = useState(true);
 
   const logs = data?.data ?? EMPTY_LOGS;
 
-  const visibleLogs = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  // --------------------------------------------------
+  // Client-side filtering
+  // --------------------------------------------------
 
-    return logs.filter((log) => {
-      if (outcome && log.outcome !== outcome) {
-        return false;
-      }
+  const visibleLogs = useMemo(
+    () => filterAuditLogs(logs, filters),
+    [logs, filters],
+  );
 
-      if (action && log.action !== action) {
-        return false;
-      }
-
-      if (resourceType && log.resourceType !== resourceType) {
-        return false;
-      }
-
-      if (!term) {
-        return true;
-      }
-
-      return [
-        log.actorName,
-        log.action,
-        log.resourceType,
-        log.resourceName ?? "",
-        log.description,
-        log.outcome,
-      ].some((value) => value.toLowerCase().includes(term));
-    });
-  }, [logs, search, outcome, action, resourceType]);
-
-  const hasActiveFilters = Boolean(search || outcome || action || resourceType);
-
-  // The shared DataTable activates virtualization
-  // when there are at least 50 rows.
   const virtualIsActive = virtualize && visibleLogs.length >= 50;
-
-  function clearFilters() {
-    setSearch("");
-    setOutcome("");
-    setAction("");
-    setResourceType("");
-  }
 
   // --------------------------------------------------
   // Render
@@ -137,6 +103,7 @@ export function AuditsPage() {
         </CardHeader>
 
         <CardContent className="space-y-5">
+          {/* Demo dataset explanation */}
           <p className="text-xs text-muted-foreground">
             Seeded demonstration data; not live user activity.
             {data?.meta.hasMore && (
@@ -147,65 +114,7 @@ export function AuditsPage() {
             )}
           </p>
 
-          {/* Search and filters */}
-          <DataTableToolbar
-            searchValue={search}
-            onSearch={setSearch}
-            searchLabel="Search audit logs"
-            placeholder="Actor, resource, description..."
-            hasActiveFilters={hasActiveFilters}
-            onClear={clearFilters}
-          >
-            {/* Outcome filter */}
-            <select
-              aria-label="Filter audit outcome"
-              value={outcome}
-              onChange={(event) =>
-                setOutcome(event.target.value as AuditOutcome | "")
-              }
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <option value="">All outcomes</option>
-              <option value="success">Success</option>
-              <option value="failure">Failure</option>
-            </select>
-
-            {/* Action filter */}
-            <select
-              aria-label="Filter audit action"
-              value={action}
-              onChange={(event) =>
-                setAction(event.target.value as AuditAction | "")
-              }
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <option value="">All actions</option>
-
-              {AUDIT_ACTIONS.map((value) => (
-                <option key={value} value={value}>
-                  {formatEnumLabel(value)}
-                </option>
-              ))}
-            </select>
-
-            {/* Resource filter */}
-            <select
-              aria-label="Filter resource type"
-              value={resourceType}
-              onChange={(event) =>
-                setResourceType(event.target.value as AuditResourceType | "")
-              }
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <option value="">All resources</option>
-
-              {AUDIT_RESOURCE_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {formatEnumLabel(value)}
-                </option>
-              ))}
-            </select>
-          </DataTableToolbar>
+          <AuditFiltersControl filters={filters} onChange={setFilters} />
 
           {/* Virtualization comparison controls */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3">
