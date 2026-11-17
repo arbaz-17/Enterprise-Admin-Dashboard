@@ -111,11 +111,11 @@ export function ClientFormDialog({
 
           <div className="space-y-2">
             <Label htmlFor="client-contact-name">
-              Contact person (optional)
+              Contact person
             </Label>
             <Input
               id="client-contact-name"
-              placeholder="e.g. Ayesha Khan"
+              placeholder="e.g. Arbaz Ahmad"
               maxLength={120}
               autoComplete="name"
               disabled={isSaving}
@@ -138,7 +138,7 @@ export function ClientFormDialog({
 
           <div className="space-y-2">
             <Label htmlFor="client-contact-email">
-              Contact email (optional)
+              Contact email
             </Label>
             <Input
               id="client-contact-email"

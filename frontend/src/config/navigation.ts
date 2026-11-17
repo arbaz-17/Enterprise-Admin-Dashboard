@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Settings2,
   Building2,
   UsersRound,
   BriefcaseBusiness,
@@ -95,13 +94,6 @@ export const navigationGroups: NavigationGroup[] = [
   },
 ];
 
-export const accountNavigation: NavigationItem[] = [
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings2,
-  },
-];
 
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -120,17 +112,6 @@ export function findNavigationItem(pathname: string) {
         item,
       };
     }
-  }
-
-  const accountItem = accountNavigation.find((entry) =>
-    isNavigationActive(pathname, entry.href),
-  );
-
-  if (accountItem) {
-    return {
-      group: "Account",
-      item: accountItem,
-    };
   }
 
   return null;

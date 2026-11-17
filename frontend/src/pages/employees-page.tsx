@@ -22,6 +22,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -222,39 +230,57 @@ export function EmployeesPage() {
               onClear={tableState.clearFilters}
             >
               {/* Employment status */}
-              <select
-                aria-label="Filter by employment status"
-                value={status ?? ""}
-                onChange={(event) =>
-                  tableState.setFilter("status", event.target.value)
+              <Select
+                value={status ?? "all"}
+                onValueChange={(value) =>
+                  tableState.setFilter("status", value === "all" ? "" : value)
                 }
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <option value="">All statuses</option>
-                {EMPLOYEE_STATUSES.map((value) => (
-                  <option key={value} value={value}>
-                    {EMPLOYEE_STATUS_LABELS[value]}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label="Filter by employment status"
+                  className="h-10 w-full sm:w-44"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+
+                  {EMPLOYEE_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {EMPLOYEE_STATUS_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {/* Department */}
-              <select
-                aria-label="Filter by department"
-                value={departmentId ?? ""}
-                onChange={(event) =>
-                  tableState.setFilter("departmentId", event.target.value)
+              <Select
+                value={departmentId ?? "all"}
+                onValueChange={(value) =>
+                  tableState.setFilter(
+                    "departmentId",
+                    value === "all" ? "" : value,
+                  )
                 }
-                className="h-10 max-w-[200px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <option value="">All departments</option>
+                <SelectTrigger
+                  aria-label="Filter by department"
+                  className="h-10 w-full sm:w-48"
+                >
+                  <SelectValue />
+                </SelectTrigger>
 
-                {departmentsQuery.data?.data.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
+                <SelectContent>
+                  <SelectItem value="all">All departments</SelectItem>
+
+                  {departmentsQuery.data?.data.map((department) => (
+                    <SelectItem key={department.id} value={department.id}>
+                      {department.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </DataTableToolbar>
 
             {isPending ? (

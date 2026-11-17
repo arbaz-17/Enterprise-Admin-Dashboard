@@ -92,8 +92,7 @@ export function EmployeeFormDialog({
             {employee ? "Edit employee" : "Add employee"}
           </DialogTitle>
           <DialogDescription>
-            Assign a department and maintain an employee record. Linking a login
-            account is optional.
+            Assign a department and maintain an employee record.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -234,7 +233,7 @@ export function EmployeeFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employee-date">Joining date (optional)</Label>
+              <Label htmlFor="employee-date">Joining date</Label>
               <Input
                 id="employee-date"
                 type="date"
@@ -250,7 +249,7 @@ export function EmployeeFormDialog({
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="employee-user">
-                Linked dashboard account (optional)
+                Linked dashboard account
               </Label>
               <Controller
                 name="userId"

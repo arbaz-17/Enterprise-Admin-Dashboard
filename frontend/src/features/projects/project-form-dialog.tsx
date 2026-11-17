@@ -179,7 +179,7 @@ export function ProjectFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="project-manager">
-                Project manager (optional)
+                Project manager
               </Label>
               <Controller
                 name="managerEmployeeId"
@@ -215,10 +215,7 @@ export function ProjectFormDialog({
                   </Select>
                 )}
               />
-              <p className="text-xs text-muted-foreground">
-                Only active employees linked to active Admin/Manager accounts
-                are eligible.
-              </p>
+              
             </div>
             <div className="space-y-2">
               <Label htmlFor="project-status">Status</Label>
@@ -290,7 +287,7 @@ export function ProjectFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="project-start-date">Start date (optional)</Label>
+              <Label htmlFor="project-start-date">Start date</Label>
               <Input
                 id="project-start-date"
                 type="date"
@@ -304,7 +301,7 @@ export function ProjectFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="project-due-date">Due date (optional)</Label>
+              <Label htmlFor="project-due-date">Due date</Label>
               <Input
                 id="project-due-date"
                 type="date"

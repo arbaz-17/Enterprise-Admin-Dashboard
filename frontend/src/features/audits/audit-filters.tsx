@@ -1,5 +1,16 @@
+
 import { DataTableToolbar } from "@/components/dashboard/data-table-toolbar";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { formatEnumLabel } from "@/lib/formatters/text";
+
 import {
   AUDIT_ACTIONS,
   AUDIT_RESOURCE_TYPES,
@@ -26,70 +37,114 @@ export function AuditFiltersControl({
   return (
     <DataTableToolbar
       searchValue={filters.search}
-      onSearch={(value) => onChange({ ...filters, search: value })}
+      onSearch={(value) =>
+        onChange({ ...filters, search: value })
+      }
       searchLabel="Search audit logs"
       placeholder="Actor, resource, description..."
       hasActiveFilters={hasAuditFilters(filters)}
       onClear={() => onChange({ ...EMPTY_AUDIT_FILTERS })}
     >
       {/* Outcome filter */}
-      <select
-        aria-label="Filter audit outcome"
-        value={filters.outcome}
-        onChange={(event) =>
+      <Select
+        value={filters.outcome || "all"}
+        onValueChange={(value) =>
           onChange({
             ...filters,
-            outcome: event.target.value as AuditOutcome | "",
+            outcome:
+              value === "all"
+                ? ""
+                : (value as AuditOutcome),
           })
         }
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <option value="">All outcomes</option>
-        <option value="success">Success</option>
-        <option value="failure">Failure</option>
-      </select>
+        <SelectTrigger
+          className="h-10 w-full sm:w-40"
+          aria-label="Filter audit outcome"
+        >
+          <SelectValue placeholder="All outcomes" />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectItem value="all">
+            All Outcomes
+          </SelectItem>
+
+          <SelectItem value="success">
+            Success
+          </SelectItem>
+
+          <SelectItem value="failure">
+            Failure
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
       {/* Action filter */}
-      <select
-        aria-label="Filter audit action"
-        value={filters.action}
-        onChange={(event) =>
+      <Select
+        value={filters.action || "all"}
+        onValueChange={(value) =>
           onChange({
             ...filters,
-            action: event.target.value as AuditAction | "",
+            action:
+              value === "all"
+                ? ""
+                : (value as AuditAction),
           })
         }
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <option value="">All actions</option>
+        <SelectTrigger
+          className="h-10 w-full sm:w-44"
+          aria-label="Filter audit action"
+        >
+          <SelectValue placeholder="All actions" />
+        </SelectTrigger>
 
-        {AUDIT_ACTIONS.map((value) => (
-          <option key={value} value={value}>
-            {formatEnumLabel(value)}
-          </option>
-        ))}
-      </select>
+        <SelectContent>
+          <SelectItem value="all">
+            All Actions
+          </SelectItem>
+
+          {AUDIT_ACTIONS.map((value) => (
+            <SelectItem key={value} value={value}>
+              {formatEnumLabel(value)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Resource filter */}
-      <select
-        aria-label="Filter resource type"
-        value={filters.resourceType}
-        onChange={(event) =>
+      <Select
+        value={filters.resourceType || "all"}
+        onValueChange={(value) =>
           onChange({
             ...filters,
-            resourceType: event.target.value as AuditResourceType | "",
+            resourceType:
+              value === "all"
+                ? ""
+                : (value as AuditResourceType),
           })
         }
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <option value="">All resources</option>
+        <SelectTrigger
+          className="h-10 w-full sm:w-44"
+          aria-label="Filter resource type"
+        >
+          <SelectValue placeholder="All resources" />
+        </SelectTrigger>
 
-        {AUDIT_RESOURCE_TYPES.map((value) => (
-          <option key={value} value={value}>
-            {formatEnumLabel(value)}
-          </option>
-        ))}
-      </select>
+        <SelectContent>
+          <SelectItem value="all">
+            All Resources
+          </SelectItem>
+
+          {AUDIT_RESOURCE_TYPES.map((value) => (
+            <SelectItem key={value} value={value}>
+              {formatEnumLabel(value)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </DataTableToolbar>
   );
 }

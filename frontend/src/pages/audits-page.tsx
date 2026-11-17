@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { ScrollText, ShieldCheck } from "lucide-react";
+import { ScrollText } from "lucide-react";
 
 import { DataTable } from "@/components/dashboard/data-table";
 
@@ -9,12 +9,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 
-import { Badge } from "@/components/ui/badge";
-
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -70,8 +67,6 @@ export function AuditsPage() {
     [logs, filters],
   );
 
-  const virtualIsActive = virtualize && visibleLogs.length >= 50;
-
   // --------------------------------------------------
   // Render
   // --------------------------------------------------
@@ -81,12 +76,6 @@ export function AuditsPage() {
       <PageHeader
         title="Audit Logs"
         description="Explore demonstration activity records and compare virtualized table rendering."
-        actions={
-          <Badge variant="outline">
-            <ShieldCheck aria-hidden="true" />
-            Admin only
-          </Badge>
-        }
       />
 
       <Card className="min-w-0">
@@ -94,25 +83,9 @@ export function AuditsPage() {
           <CardTitle>
             <h2 className="text-base font-semibold">Activity history</h2>
           </CardTitle>
-
-          <CardDescription>
-            {data
-              ? `${visibleLogs.length} of ${logs.length} loaded records displayed`
-              : "Loading read-only audit events"}
-          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* Demo dataset explanation */}
-          <p className="text-xs text-muted-foreground">
-            Seeded demonstration data; not live user activity.
-            {data?.meta.hasMore && (
-              <span className="ml-1 font-medium">
-                Only the latest {data.meta.returned} records were loaded;
-                filters apply to these records only.
-              </span>
-            )}
-          </p>
 
           <AuditFiltersControl filters={filters} onChange={setFilters} />
 
@@ -125,14 +98,6 @@ export function AuditsPage() {
               >
                 Enable row virtualization
               </label>
-
-              <p className="text-xs text-muted-foreground">
-                {virtualIsActive
-                  ? "Active: renders visible rows plus overscan."
-                  : virtualize
-                    ? "Enabled: requires at least 50 matching records."
-                    : "Disabled: renders every matching row."}
-              </p>
             </div>
 
             <Switch

@@ -16,7 +16,7 @@ import {
 
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-import { DataTableColumnVisibility } from "./data-table-column-visbility";
+import { DataTableColumnVisibility } from "./data-table-column-visibility";
 import { DataTableHeader } from "./data-table-header";
 import { DataTablePagination } from "./data-table-pagination";
 

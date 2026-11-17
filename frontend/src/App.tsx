@@ -17,11 +17,6 @@ const DashboardPage = lazy(() =>
   })),
 );
 
-const SettingsPage = lazy(() =>
-  import("@/pages/settings-page").then((module) => ({
-    default: module.SettingsPage,
-  })),
-);
 
 const DepartmentsPage = lazy(() =>
   import("@/pages/departments-page").then((module) => ({
@@ -156,9 +151,6 @@ export default function App() {
             >
               <Route path="audits" element={<AuditsPage />} />
             </Route>
-
-            {/* Settings */}
-            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Route>
