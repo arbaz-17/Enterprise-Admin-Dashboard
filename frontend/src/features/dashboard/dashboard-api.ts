@@ -6,9 +6,18 @@ import type {
   DashboardProjectStatusResponse,
   DashboardDepartmentsResponse,
   DashboardRecentProjectsResponse,
+  DashboardOperationsResponse,
 } from "./dashboard.types";
 
 export const dashboardApi = {
+  async operations(signal?: AbortSignal): Promise<DashboardOperationsResponse> {
+    const { data } = await apiClient.get<DashboardOperationsResponse>(
+      "/dashboard/operations",
+      { signal },
+    );
+    return data;
+  },
+
 
   async metrics(signal?: AbortSignal): Promise<DashboardMetricsResponse> {
     const { data } = await apiClient.get<DashboardMetricsResponse>(

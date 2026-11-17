@@ -1,5 +1,9 @@
 
-import type { ProjectStatus as ProjectDomainStatus } from "@/features/projects/projects.types";
+import type {
+  ProjectPriority as ProjectDomainPriority,
+  ProjectStatus as ProjectDomainStatus,
+} from "@/features/projects/projects.types";
+import type { EmployeeStatus as EmployeeDomainStatus } from "@/features/employees/employees.types";
 
 export type ProjectStatus = ProjectDomainStatus;
 
@@ -72,6 +76,37 @@ export interface DashboardDepartmentsResponse {
 
 export interface DashboardRecentProjectsResponse {
   data: RecentProjectsData & {
+    generatedAt: string;
+  };
+}
+
+export type ProjectPriority = ProjectDomainPriority;
+export type EmployeeStatus = EmployeeDomainStatus;
+export type AttentionReason = "overdue" | "on_hold" | "unassigned" | "due_soon";
+
+export interface OperationsOverview {
+  health: {
+    overdue: number;
+    dueSoon: number;
+    activeCount: number;
+    averageActiveProgress: number;
+  };
+  priorityDistribution: { priority: ProjectPriority; count: number }[];
+  employeeStatus: { status: EmployeeStatus; count: number }[];
+  attentionProjects: {
+    id: string;
+    name: string;
+    status: ProjectStatus;
+    progress: number;
+    dueDate: string | null;
+    reason: AttentionReason;
+  }[];
+  canViewProjects: boolean;
+}
+
+export interface DashboardOperationsResponse {
+  data: {
+    operations: OperationsOverview;
     generatedAt: string;
   };
 }

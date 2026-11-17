@@ -11,6 +11,10 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { DashboardWidget } from "@/features/dashboard/dashboard-widget";
 import { RecentProjects } from "@/features/dashboard/recent-projects";
+import {
+  OperationsOverview,
+  OperationsOverviewSkeleton,
+} from "@/features/dashboard/operations-overview";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { DeferredChart } from "@/components/dashboard/deferred-chart";
 import {
@@ -28,6 +32,7 @@ import {
   useDashboardProjectStatus,
   useDashboardDepartments,
   useDashboardRecentProjects,
+  useDashboardOperations,
 } from "@/features/dashboard/dashboard.queries";
 
 const MonthlyActivityChart = lazy(() =>
@@ -48,15 +53,28 @@ const DepartmentChart = lazy(() =>
   })),
 );
 
+const ProjectPriorityChart = lazy(() =>
+  import("@/features/dashboard/operations-distribution-charts").then(
+    (module) => ({ default: module.ProjectPriorityChart }),
+  ),
+);
+
+const EmployeeStatusChart = lazy(() =>
+  import("@/features/dashboard/operations-distribution-charts").then(
+    (module) => ({ default: module.EmployeeStatusChart }),
+  ),
+);
+
 export function DashboardPage() {
   const queryClient = useQueryClient();
 
-  // All five requests run independently.
+  // Each dashboard section fetches independently.
   const metricsQuery = useDashboardMetrics();
   const activityQuery = useDashboardMonthlyActivity();
   const statusQuery = useDashboardProjectStatus();
   const departmentsQuery = useDashboardDepartments();
   const recentProjectsQuery = useDashboardRecentProjects();
+  const operationsQuery = useDashboardOperations();
 
   const isFetching = [
     metricsQuery,
@@ -64,6 +82,7 @@ export function DashboardPage() {
     statusQuery,
     departmentsQuery,
     recentProjectsQuery,
+    operationsQuery,
   ].some((query) => query.isFetching);
 
   const refreshAll = () => {
@@ -78,7 +97,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Overview"
-        description="Live organization statistics from the Enterprise Operations database."
+        description="Current organization overview and operational insights."
         actions={
           <Button
             type="button"
@@ -184,6 +203,42 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {/* Project priority and workforce status */}
+      <section
+        aria-label="Priority and workforce distributions"
+        className="grid min-w-0 gap-6 lg:grid-cols-2"
+      >
+        <div className="min-w-0" aria-busy={operationsQuery.isPending}>
+          <DashboardWidget
+            title="Project priority"
+            description="Open projects by priority."
+            query={operationsQuery}
+            skeleton={<ProjectStatusSkeleton />}
+            render={({ data }) => (
+              <DeferredChart fallback={<ProjectStatusSkeleton />}>
+                <ProjectPriorityChart
+                  data={data.operations.priorityDistribution}
+                />
+              </DeferredChart>
+            )}
+          />
+        </div>
+
+        <div className="min-w-0" aria-busy={operationsQuery.isPending}>
+          <DashboardWidget
+            title="Employee status"
+            description="Workforce by employment status."
+            query={operationsQuery}
+            skeleton={<ProjectStatusSkeleton />}
+            render={({ data }) => (
+              <DeferredChart fallback={<ProjectStatusSkeleton />}>
+                <EmployeeStatusChart data={data.operations.employeeStatus} />
+              </DeferredChart>
+            )}
+          />
+        </div>
+      </section>
+
       {/* Organization analytics */}
       <section
         aria-label="Organization insights"
@@ -223,6 +278,20 @@ export function DashboardPage() {
             )}
           />
         </div>
+      </section>
+
+      {/* Project health: last section */}
+      <section
+        aria-label="Project health"
+        aria-busy={operationsQuery.isPending}
+      >
+        <DashboardWidget
+          title="Project health"
+          description="Deadlines and projects requiring attention."
+          query={operationsQuery}
+          skeleton={<OperationsOverviewSkeleton />}
+          render={({ data }) => <OperationsOverview data={data.operations} />}
+        />
       </section>
     </div>
   );
