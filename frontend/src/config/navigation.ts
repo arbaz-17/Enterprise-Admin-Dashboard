@@ -19,12 +19,12 @@ export interface NavigationItem {
   permission?: Permission;
 }
 
-export interface NavigationGroup {
+interface NavigationGroup {
   label: string;
   items: NavigationItem[];
 }
 
-export interface NavigationBreadcrumb {
+interface NavigationBreadcrumb {
   label: string;
   href?: string;
 }
@@ -86,11 +86,11 @@ export const navigationGroups: NavigationGroup[] = [
       },
 
       {
-      label: "Audit Logs",
-      href: "/audits",
-      icon: ScrollText,
-      permission: "audits:read",
-    },
+        label: "Audit Logs",
+        href: "/audits",
+        icon: ScrollText,
+        permission: "audits:read",
+      },
     ],
   },
 ];
