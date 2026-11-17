@@ -69,6 +69,7 @@ export function EmployeesPage() {
       "linkedUserName",
     ] as const,
     defaultSortBy: "fullName",
+    filterKeys: ["q", "status", "departmentId"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
@@ -106,29 +107,6 @@ export function EmployeesPage() {
   const total = data?.pagination.total ?? 0;
 
   // Search and filters preserve sorting preferences.
-  function updateFilter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
-
-  function clearFilters() {
-    const next = new URLSearchParams(params);
-
-    for (const key of ["q", "status", "departmentId", "page"]) {
-      next.delete(key);
-    }
-
-    setParams(next);
-  }
-
   async function handleSave(input: EmployeeInput) {
     if (!canManage || !editor) {
       throw new Error("Not authorized to manage employees");
@@ -239,15 +217,17 @@ export function EmployeesPage() {
               searchValue={q}
               searchLabel="Search employees"
               placeholder="Name, email or designation..."
-              onSearch={(value) => updateFilter("q", value)}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q || status || departmentId)}
-              onClear={clearFilters}
+              onClear={tableState.clearFilters}
             >
               {/* Employment status */}
               <select
                 aria-label="Filter by employment status"
                 value={status ?? ""}
-                onChange={(event) => updateFilter("status", event.target.value)}
+                onChange={(event) =>
+                  tableState.setFilter("status", event.target.value)
+                }
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
                 <option value="">All statuses</option>
@@ -263,7 +243,7 @@ export function EmployeesPage() {
                 aria-label="Filter by department"
                 value={departmentId ?? ""}
                 onChange={(event) =>
-                  updateFilter("departmentId", event.target.value)
+                  tableState.setFilter("departmentId", event.target.value)
                 }
                 className="h-10 max-w-[200px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >

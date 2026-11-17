@@ -85,6 +85,7 @@ export function ProjectsPage() {
       "dueDate",
     ] as const,
     defaultSortBy: "name",
+    filterKeys: ["q", "status", "priority"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
@@ -115,29 +116,6 @@ export function ProjectsPage() {
   const remove = useDeleteProject();
 
   const total = data?.pagination.total ?? 0;
-
-  function setFilter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
-
-  function clearFilters() {
-    const next = new URLSearchParams(params);
-
-    for (const key of ["q", "status", "priority", "page"]) {
-      next.delete(key);
-    }
-
-    setParams(next);
-  }
 
   // Admin: Full project CRUD
   async function handleAdminSave(payload: ProjectInput): Promise<void> {
@@ -275,15 +253,15 @@ export function ProjectsPage() {
               searchValue={q}
               searchLabel="Search projects"
               placeholder="Project or client name..."
-              onSearch={(value) => setFilter("q", value)}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q || status || priority)}
-              onClear={clearFilters}
+              onClear={tableState.clearFilters}
             >
               {/* Project status */}
               <Select
                 value={status ?? "all"}
                 onValueChange={(value) =>
-                  setFilter("status", value === "all" ? "" : value)
+                  tableState.setFilter("status", value === "all" ? "" : value)
                 }
               >
                 <SelectTrigger
@@ -308,7 +286,7 @@ export function ProjectsPage() {
               <Select
                 value={priority ?? "all"}
                 onValueChange={(value) =>
-                  setFilter("priority", value === "all" ? "" : value)
+                  tableState.setFilter("priority", value === "all" ? "" : value)
                 }
               >
                 <SelectTrigger

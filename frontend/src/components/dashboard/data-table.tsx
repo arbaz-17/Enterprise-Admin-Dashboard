@@ -14,27 +14,10 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Columns3 } from "lucide-react";
+import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-import { Button } from "@/components/ui/button";
-
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
+import { DataTableColumnVisibility } from "./data-table-column-visbility";
+import { DataTableHeader } from "./data-table-header";
 import { DataTablePagination } from "./data-table-pagination";
 
 // -------------------------------------------------------
@@ -296,10 +279,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
 
   const visibleColumns = table.getVisibleLeafColumns();
 
-  const hideableColumns = table
-    .getAllLeafColumns()
-    .filter((column) => column.getCanHide());
-
   // -----------------------------------------------------
   // Enable virtualization only when useful
   // -----------------------------------------------------
@@ -347,47 +326,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
               : `${rows.length} records displayed`}
         </p>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isLoading}
-            >
-              <Columns3 className="size-4" aria-hidden="true" />
-              Columns
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
-
-            <DropdownMenuSeparator />
-
-            {hideableColumns.map((column) => {
-              const header = column.columnDef.header;
-
-              const label =
-                typeof header === "string"
-                  ? header
-                  : column.id.replace(/([a-z])([A-Z])/g, "$1 $2");
-
-              return (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  disabled={column.getIsVisible() && visibleColumns.length <= 1}
-                  onCheckedChange={(checked) =>
-                    column.toggleVisibility(Boolean(checked))
-                  }
-                >
-                  {label}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <DataTableColumnVisibility table={table} disabled={isLoading} />
       </div>
 
       {/* Table content */}
@@ -425,75 +364,8 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
             aria-label={tableLabel}
             className="w-full caption-bottom text-sm"
           >
-            {/* Table header */}
-            <TableHeader
-              className={
-                useConstrainedViewport
-                  ? "sticky top-0 z-10 bg-background"
-                  : undefined
-              }
-            >
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const column = header.column;
-
-                    const isSorted = column.getIsSorted();
-
-                    return (
-                      <TableHead
-                        key={header.id}
-                        scope="col"
-                        aria-sort={
-                          isSorted === "asc"
-                            ? "ascending"
-                            : isSorted === "desc"
-                              ? "descending"
-                              : "none"
-                        }
-                      >
-                        {header.isPlaceholder ? null : column.getCanSort() ? (
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 rounded-sm text-left hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                            onClick={() =>
-                              column.toggleSorting(isSorted === "asc")
-                            }
-                          >
-                            {flexRender(
-                              column.columnDef.header,
-                              header.getContext(),
-                            )}
-
-                            {isSorted === "asc" ? (
-                              <ArrowUp
-                                className="size-3.5"
-                                aria-hidden="true"
-                              />
-                            ) : isSorted === "desc" ? (
-                              <ArrowDown
-                                className="size-3.5"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <ArrowUpDown
-                                className="size-3.5 opacity-40"
-                                aria-hidden="true"
-                              />
-                            )}
-                          </button>
-                        ) : (
-                          flexRender(
-                            column.columnDef.header,
-                            header.getContext(),
-                          )
-                        )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
+            {/* Sorting and sticky header UI */}
+            <DataTableHeader table={table} sticky={useConstrainedViewport} />
 
             {/* Table body */}
             <TableBody>
