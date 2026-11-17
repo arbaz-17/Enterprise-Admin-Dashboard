@@ -2,46 +2,23 @@
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
+import { formatLocalDateTime } from "@/lib/formatters/date";
+import { formatEnumLabel } from "@/lib/formatters/text";
 
 import type { AuditLog } from "./audits.types";
 
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-export function formatAuditLabel(value: string): string {
-  const label = value.replaceAll("_", " ");
-
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : dateTimeFormatter.format(date);
-}
-
 export const auditColumns: ColumnDef<AuditLog>[] = [
-  // --------------------------------------------------
-  // Date and time
-  // --------------------------------------------------
   {
     accessorKey: "occurredAt",
     header: "Date & time",
 
     cell: ({ row }) => (
       <span className="whitespace-nowrap text-muted-foreground">
-        {formatDateTime(row.original.occurredAt)}
+        {formatLocalDateTime(row.original.occurredAt)}
       </span>
     ),
   },
 
-  // --------------------------------------------------
-  // Actor
-  // --------------------------------------------------
   {
     accessorKey: "actorName",
     header: "Actor",
@@ -53,20 +30,14 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     ),
   },
 
-  // --------------------------------------------------
-  // Action
-  // --------------------------------------------------
   {
     accessorKey: "action",
     header: "Action",
 
     cell: ({ row }) =>
-      formatAuditLabel(row.original.action),
+      formatEnumLabel(row.original.action),
   },
 
-  // --------------------------------------------------
-  // Resource
-  // --------------------------------------------------
   {
     accessorKey: "resourceType",
     header: "Resource",
@@ -74,7 +45,7 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => (
       <div className="min-w-36 space-y-0.5">
         <p className="font-medium">
-          {formatAuditLabel(row.original.resourceType)}
+          {formatEnumLabel(row.original.resourceType)}
         </p>
 
         {row.original.resourceName && (
@@ -86,9 +57,7 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     ),
   },
 
-  // --------------------------------------------------
-  // Activity details
-  // --------------------------------------------------
+
   {
     accessorKey: "description",
     header: "Activity details",
@@ -100,9 +69,6 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     ),
   },
 
-  // --------------------------------------------------
-  // Outcome
-  // --------------------------------------------------
   {
     accessorKey: "outcome",
     header: "Outcome",

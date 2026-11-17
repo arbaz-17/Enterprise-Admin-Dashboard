@@ -36,10 +36,12 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { ProjectFormDialog } from "@/features/projects/project-form-dialog";
 import { ProjectProgressDialog } from "@/features/projects/project-progress-dialog";
 
+import { getProjectColumns } from "@/features/projects/project-columns";
 import {
-  getProjectColumns,
-  statusLabels,
-} from "@/features/projects/project-columns";
+  PROJECT_PRIORITIES,
+  PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
+} from "@/features/projects/project.constants";
 
 import {
   useCreateProject,
@@ -51,19 +53,8 @@ import {
 import type {
   Project,
   ProjectInput,
-  ProjectPriority,
-  ProjectStatus,
   ProjectStatusInput,
 } from "@/features/projects/projects.types";
-
-const STATUSES: ProjectStatus[] = [
-  "planning",
-  "active",
-  "on_hold",
-  "completed",
-];
-
-const PRIORITIES: ProjectPriority[] = ["low", "medium", "high"];
 
 type Editor = { mode: "create" } | { mode: "edit"; project: Project } | null;
 
@@ -100,9 +91,13 @@ export function ProjectsPage() {
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
-  const status = STATUSES.find((value) => value === params.get("status"));
+  const status = PROJECT_STATUSES.find(
+    (value) => value === params.get("status"),
+  );
 
-  const priority = PRIORITIES.find((value) => value === params.get("priority"));
+  const priority = PROJECT_PRIORITIES.find(
+    (value) => value === params.get("priority"),
+  );
 
   // Server-side data
   const { data, isPending, isError, isFetching, error, refetch } = useProjects({
@@ -301,9 +296,9 @@ export function ProjectsPage() {
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
 
-                  {STATUSES.map((value) => (
+                  {PROJECT_STATUSES.map((value) => (
                     <SelectItem key={value} value={value}>
-                      {statusLabels[value]}
+                      {PROJECT_STATUS_LABELS[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -326,7 +321,7 @@ export function ProjectsPage() {
                 <SelectContent>
                   <SelectItem value="all">All priorities</SelectItem>
 
-                  {PRIORITIES.map((value) => (
+                  {PROJECT_PRIORITIES.map((value) => (
                     <SelectItem key={value} value={value}>
                       {value[0].toUpperCase() + value.slice(1)}
                     </SelectItem>

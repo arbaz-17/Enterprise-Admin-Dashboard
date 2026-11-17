@@ -3,7 +3,9 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatDateOnly } from "@/lib/formatters/date";
 
+import { EMPLOYEE_STATUS_LABELS } from "./employee.constants";
 import type { Employee, EmployeeStatus } from "./employees.types";
 
 interface EmployeeColumnOptions {
@@ -12,28 +14,7 @@ interface EmployeeColumnOptions {
   onDelete: (employee: Employee) => void;
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "—";
-
-  const date = new Date(`${value}T00:00:00Z`);
-
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
-}
-
 function StatusBadge({ status }: { status: EmployeeStatus }) {
-  const labels: Record<EmployeeStatus, string> = {
-    active: "Active",
-    on_leave: "On leave",
-    inactive: "Inactive",
-  };
-
   return (
     <Badge
       variant={
@@ -44,7 +25,7 @@ function StatusBadge({ status }: { status: EmployeeStatus }) {
             : "outline"
       }
     >
-      {labels[status]}
+      {EMPLOYEE_STATUS_LABELS[status]}
     </Badge>
   );
 }
@@ -90,7 +71,7 @@ export function getEmployeeColumns({
       header: "Joined",
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-muted-foreground">
-          {formatDate(row.original.joiningDate)}
+          {formatDateOnly(row.original.joiningDate)}
         </span>
       ),
     },

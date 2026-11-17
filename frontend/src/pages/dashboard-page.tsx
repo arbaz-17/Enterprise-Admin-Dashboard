@@ -38,11 +38,10 @@ import {
   useDashboardDepartments,
   useDashboardRecentProjects,
 } from "@/features/dashboard/dashboard.queries";
-import type {
-  RecentProjectsData,
-  ProjectStatus,
-} from "@/features/dashboard/dashboard.types";
+import type { RecentProjectsData } from "@/features/dashboard/dashboard.types";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { formatLocalDate } from "@/lib/formatters/date";
+import { PROJECT_STATUS_LABELS } from "@/features/projects/project.constants";
 
 const MonthlyActivityChart = lazy(() =>
   import("@/components/dashboard/dashboard-charts").then((module) => ({
@@ -61,24 +60,6 @@ const DepartmentChart = lazy(() =>
     default: module.DepartmentChart,
   })),
 );
-
-const statusLabels: Record<ProjectStatus, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On hold",
-  completed: "Completed",
-};
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
 
 interface DashboardWidgetProps<TData> {
   title: string;
@@ -227,12 +208,12 @@ function RecentProjects({
                     <p className="text-xs text-muted-foreground">
                       {project.clientName}
                       {" · Updated "}
-                      {formatDate(project.updatedAt)}
+                      {formatLocalDate(project.updatedAt)}
                     </p>
                   </div>
 
                   <Badge variant="secondary">
-                    {statusLabels[project.status]}
+                    {PROJECT_STATUS_LABELS[project.status]}
                   </Badge>
                 </li>
               ))}

@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 
 import { ScrollText, ShieldCheck } from "lucide-react";
@@ -25,10 +24,8 @@ import { Switch } from "@/components/ui/switch";
 
 import { getApiErrorMessage } from "@/lib/api-error";
 
-import {
-  auditColumns,
-  formatAuditLabel,
-} from "@/features/audits/audit-columns";
+import { auditColumns } from "@/features/audits/audit-columns";
+import { formatEnumLabel } from "@/lib/formatters/text";
 
 import { useAuditLogs } from "@/features/audits/audits.queries";
 
@@ -51,38 +48,19 @@ export function AuditsPage() {
   // Fetch audit records
   // --------------------------------------------------
 
-  const {
-    data,
-    isPending,
-    isError,
-    isFetching,
-    error,
-    refetch,
-  } = useAuditLogs();
-
-  // --------------------------------------------------
-  // Local filter state
-  // --------------------------------------------------
+  const { data, isPending, isError, isFetching, error, refetch } =
+    useAuditLogs();
 
   const [search, setSearch] = useState("");
 
-  const [outcome, setOutcome] =
-    useState<AuditOutcome | "">("");
+  const [outcome, setOutcome] = useState<AuditOutcome | "">("");
 
-  const [action, setAction] =
-    useState<AuditAction | "">("");
+  const [action, setAction] = useState<AuditAction | "">("");
 
-  const [resourceType, setResourceType] =
-    useState<AuditResourceType | "">("");
-
-  // Virtualization is enabled by default.
+  const [resourceType, setResourceType] = useState<AuditResourceType | "">("");
   const [virtualize, setVirtualize] = useState(true);
 
   const logs = data?.data ?? EMPTY_LOGS;
-
-  // --------------------------------------------------
-  // Client-side filtering
-  // --------------------------------------------------
 
   const visibleLogs = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -96,10 +74,7 @@ export function AuditsPage() {
         return false;
       }
 
-      if (
-        resourceType &&
-        log.resourceType !== resourceType
-      ) {
+      if (resourceType && log.resourceType !== resourceType) {
         return false;
       }
 
@@ -114,26 +89,15 @@ export function AuditsPage() {
         log.resourceName ?? "",
         log.description,
         log.outcome,
-      ].some((value) =>
-        value.toLowerCase().includes(term),
-      );
+      ].some((value) => value.toLowerCase().includes(term));
     });
-  }, [
-    logs,
-    search,
-    outcome,
-    action,
-    resourceType,
-  ]);
+  }, [logs, search, outcome, action, resourceType]);
 
-  const hasActiveFilters = Boolean(
-    search || outcome || action || resourceType,
-  );
+  const hasActiveFilters = Boolean(search || outcome || action || resourceType);
 
   // The shared DataTable activates virtualization
   // when there are at least 50 rows.
-  const virtualIsActive =
-    virtualize && visibleLogs.length >= 50;
+  const virtualIsActive = virtualize && visibleLogs.length >= 50;
 
   function clearFilters() {
     setSearch("");
@@ -162,9 +126,7 @@ export function AuditsPage() {
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle>
-            <h2 className="text-base font-semibold">
-              Activity history
-            </h2>
+            <h2 className="text-base font-semibold">Activity history</h2>
           </CardTitle>
 
           <CardDescription>
@@ -175,15 +137,12 @@ export function AuditsPage() {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* Demo dataset explanation */}
           <p className="text-xs text-muted-foreground">
             Seeded demonstration data; not live user activity.
-
             {data?.meta.hasMore && (
               <span className="ml-1 font-medium">
-                Only the latest {data.meta.returned} records
-                were loaded; filters apply to these records
-                only.
+                Only the latest {data.meta.returned} records were loaded;
+                filters apply to these records only.
               </span>
             )}
           </p>
@@ -202,9 +161,7 @@ export function AuditsPage() {
               aria-label="Filter audit outcome"
               value={outcome}
               onChange={(event) =>
-                setOutcome(
-                  event.target.value as AuditOutcome | "",
-                )
+                setOutcome(event.target.value as AuditOutcome | "")
               }
               className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
@@ -218,9 +175,7 @@ export function AuditsPage() {
               aria-label="Filter audit action"
               value={action}
               onChange={(event) =>
-                setAction(
-                  event.target.value as AuditAction | "",
-                )
+                setAction(event.target.value as AuditAction | "")
               }
               className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
@@ -228,7 +183,7 @@ export function AuditsPage() {
 
               {AUDIT_ACTIONS.map((value) => (
                 <option key={value} value={value}>
-                  {formatAuditLabel(value)}
+                  {formatEnumLabel(value)}
                 </option>
               ))}
             </select>
@@ -238,9 +193,7 @@ export function AuditsPage() {
               aria-label="Filter resource type"
               value={resourceType}
               onChange={(event) =>
-                setResourceType(
-                  event.target.value as AuditResourceType | "",
-                )
+                setResourceType(event.target.value as AuditResourceType | "")
               }
               className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
@@ -248,7 +201,7 @@ export function AuditsPage() {
 
               {AUDIT_RESOURCE_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {formatAuditLabel(value)}
+                  {formatEnumLabel(value)}
                 </option>
               ))}
             </select>

@@ -1,9 +1,7 @@
 
-export type ProjectStatus =
-  | "planning"
-  | "active"
-  | "on_hold"
-  | "completed";
+import type { ProjectStatus as ProjectDomainStatus } from "@/features/projects/projects.types";
+
+export type ProjectStatus = ProjectDomainStatus;
 
 export interface DashboardMetrics {
   employees: number;
