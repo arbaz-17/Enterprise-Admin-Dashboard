@@ -20,6 +20,7 @@ import { employeesRouter } from "./routes/employees.js";
 import { clientsRouter } from "./routes/clients.js";
 import { projectsRouter } from "./routes/projects.js";
 import { projectAssignmentsRouter } from "./routes/project-assignments.js";
+import { auditsRouter } from "./routes/audits.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 
 // Helmet provides a default-exported middleware factory.
@@ -86,6 +87,7 @@ app.use(
   projectAssignmentsRouter,
 );
 app.use("/api/projects", projectsRouter);
+app.use("/api/audits", auditsRouter);
 
 // 404 handler
 app.use(notFound);

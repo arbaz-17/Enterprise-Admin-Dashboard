@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { LoaderCircle } from "lucide-react";
 
 import { useDepartments } from "@/features/departments/departments.queries";
@@ -26,28 +25,14 @@ import {
 } from "@/components/ui/select";
 import { useAccountOptions } from "./employees.queries";
 import type { Employee, EmployeeInput } from "./employees.types";
-
-const formSchema = z.object({
-  fullName: z.string().trim().min(1, "Name is required").max(120),
-  workEmail: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email("Enter a valid email")
-    .max(254),
-  designation: z.string().trim().min(1, "Designation is required").max(100),
-  departmentId: z.string().uuid("Select a department"),
-  status: z.enum(["active", "on_leave", "inactive"]),
-  userId: z.string().nullable(),
-  joiningDate: z
-    .string()
-    .refine(
-      (date) => !date || z.iso.date().safeParse(date).success,
-      "Enter a valid joining date",
-    ),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import {
+  employeeFormSchema,
+  type EmployeeFormValues,
+} from "./employee-form.schema";
+import {
+  getEmployeeFormDefaults,
+  toEmployeeInput,
+} from "./employee-form.helpers";
 
 interface Props {
   employee?: Employee | null;
@@ -75,29 +60,17 @@ export function EmployeeFormDialog({
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      fullName: employee?.fullName ?? "",
-      workEmail: employee?.workEmail ?? "",
-      designation: employee?.designation ?? "",
-      departmentId: employee?.departmentId ?? "",
-      userId: employee?.userId ?? null,
-      status: employee?.status ?? "active",
-      joiningDate: employee?.joiningDate ?? "",
-    },
+  } = useForm<EmployeeFormValues>({
+    resolver: zodResolver(employeeFormSchema),
+    defaultValues: getEmployeeFormDefaults(employee),
   });
   const isSaving = isPending || isSubmitting;
   const noDepartments = !departmentsLoading && !departmentData?.data.length;
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: EmployeeFormValues) {
     setServerError(null);
     try {
-      await onSave({
-        ...values,
-        userId: values.userId || null,
-        joiningDate: values.joiningDate || null,
-      });
+      await onSave(toEmployeeInput(values));
     } catch (error) {
       setServerError(getApiErrorMessage(error));
     }
@@ -119,8 +92,7 @@ export function EmployeeFormDialog({
             {employee ? "Edit employee" : "Add employee"}
           </DialogTitle>
           <DialogDescription>
-            Assign a department and maintain an employee record. Linking a login
-            account is optional.
+            Assign a department and maintain an employee record.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -261,7 +233,7 @@ export function EmployeeFormDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employee-date">Joining date (optional)</Label>
+              <Label htmlFor="employee-date">Joining date</Label>
               <Input
                 id="employee-date"
                 type="date"
@@ -277,7 +249,7 @@ export function EmployeeFormDialog({
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="employee-user">
-                Linked dashboard account (optional)
+                Linked dashboard account
               </Label>
               <Controller
                 name="userId"

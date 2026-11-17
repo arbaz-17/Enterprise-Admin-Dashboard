@@ -4,19 +4,21 @@ export const PAGE_SIZES = [10, 20, 50, 100] as const;
 
 type SortDirection = "asc" | "desc";
 
-interface TableUrlOptions<TSort extends string> {
+interface TableUrlOptions<TSort extends string, TFilter extends string> {
   params: URLSearchParams;
   setParams: (params: URLSearchParams) => void;
   sortKeys: readonly TSort[];
   defaultSortBy: TSort;
+  filterKeys?: readonly TFilter[];
 }
 
-export function getTableUrlState<TSort extends string>({
+export function getTableUrlState<TSort extends string, TFilter extends string = never>({
   params,
   setParams,
   sortKeys,
   defaultSortBy,
-}: TableUrlOptions<TSort>) {
+  filterKeys = [],
+}: TableUrlOptions<TSort, TFilter>) {
   const rawPage = Number(params.get("page") ?? 1);
   const rawSize = Number(params.get("pageSize") ?? 10);
 
@@ -108,6 +110,32 @@ export function getTableUrlState<TSort extends string>({
     setParams(next);
   };
 
+  // Every list page uses the same URL filter semantics:
+  // preserve sort/page-size, and return to page one when filters change.
+  function setFilter(key: TFilter, value: string) {
+    const next = new URLSearchParams(params);
+
+    if (value) {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
+
+    next.delete("page");
+    setParams(next);
+  }
+
+  function clearFilters() {
+    const next = new URLSearchParams(params);
+
+    for (const key of filterKeys) {
+      next.delete(key);
+    }
+
+    next.delete("page");
+    setParams(next);
+  }
+
   return {
     page,
     pageSize,
@@ -117,5 +145,7 @@ export function getTableUrlState<TSort extends string>({
     goToPage,
     onPageSizeChange,
     onSortingChange,
+    setFilter,
+    clearFilters,
   };
 }

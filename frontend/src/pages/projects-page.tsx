@@ -36,10 +36,12 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import { ProjectFormDialog } from "@/features/projects/project-form-dialog";
 import { ProjectProgressDialog } from "@/features/projects/project-progress-dialog";
 
+import { getProjectColumns } from "@/features/projects/project-columns";
 import {
-  getProjectColumns,
-  statusLabels,
-} from "@/features/projects/project-columns";
+  PROJECT_PRIORITIES,
+  PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
+} from "@/features/projects/project.constants";
 
 import {
   useCreateProject,
@@ -51,19 +53,8 @@ import {
 import type {
   Project,
   ProjectInput,
-  ProjectPriority,
-  ProjectStatus,
   ProjectStatusInput,
 } from "@/features/projects/projects.types";
-
-const STATUSES: ProjectStatus[] = [
-  "planning",
-  "active",
-  "on_hold",
-  "completed",
-];
-
-const PRIORITIES: ProjectPriority[] = ["low", "medium", "high"];
 
 type Editor = { mode: "create" } | { mode: "edit"; project: Project } | null;
 
@@ -94,15 +85,20 @@ export function ProjectsPage() {
       "dueDate",
     ] as const,
     defaultSortBy: "name",
+    filterKeys: ["q", "status", "priority"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
-  const status = STATUSES.find((value) => value === params.get("status"));
+  const status = PROJECT_STATUSES.find(
+    (value) => value === params.get("status"),
+  );
 
-  const priority = PRIORITIES.find((value) => value === params.get("priority"));
+  const priority = PROJECT_PRIORITIES.find(
+    (value) => value === params.get("priority"),
+  );
 
   // Server-side data
   const { data, isPending, isError, isFetching, error, refetch } = useProjects({
@@ -120,29 +116,6 @@ export function ProjectsPage() {
   const remove = useDeleteProject();
 
   const total = data?.pagination.total ?? 0;
-
-  function setFilter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
-
-  function clearFilters() {
-    const next = new URLSearchParams(params);
-
-    for (const key of ["q", "status", "priority", "page"]) {
-      next.delete(key);
-    }
-
-    setParams(next);
-  }
 
   // Admin: Full project CRUD
   async function handleAdminSave(payload: ProjectInput): Promise<void> {
@@ -236,6 +209,7 @@ export function ProjectsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Projects",
     getRowId: (project: Project) => project.id,
+    virtualize: true,
   };
 
   return (
@@ -279,15 +253,15 @@ export function ProjectsPage() {
               searchValue={q}
               searchLabel="Search projects"
               placeholder="Project or client name..."
-              onSearch={(value) => setFilter("q", value)}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q || status || priority)}
-              onClear={clearFilters}
+              onClear={tableState.clearFilters}
             >
               {/* Project status */}
               <Select
                 value={status ?? "all"}
                 onValueChange={(value) =>
-                  setFilter("status", value === "all" ? "" : value)
+                  tableState.setFilter("status", value === "all" ? "" : value)
                 }
               >
                 <SelectTrigger
@@ -300,9 +274,9 @@ export function ProjectsPage() {
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
 
-                  {STATUSES.map((value) => (
+                  {PROJECT_STATUSES.map((value) => (
                     <SelectItem key={value} value={value}>
-                      {statusLabels[value]}
+                      {PROJECT_STATUS_LABELS[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -312,7 +286,7 @@ export function ProjectsPage() {
               <Select
                 value={priority ?? "all"}
                 onValueChange={(value) =>
-                  setFilter("priority", value === "all" ? "" : value)
+                  tableState.setFilter("priority", value === "all" ? "" : value)
                 }
               >
                 <SelectTrigger
@@ -325,7 +299,7 @@ export function ProjectsPage() {
                 <SelectContent>
                   <SelectItem value="all">All priorities</SelectItem>
 
-                  {PRIORITIES.map((value) => (
+                  {PROJECT_PRIORITIES.map((value) => (
                     <SelectItem key={value} value={value}>
                       {value[0].toUpperCase() + value.slice(1)}
                     </SelectItem>

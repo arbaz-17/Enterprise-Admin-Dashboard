@@ -22,12 +22,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 
 import { useDepartments } from "@/features/departments/departments.queries";
 import { EmployeeFormDialog } from "@/features/employees/employee-form-dialog";
 import { getEmployeeColumns } from "@/features/employees/employee-columns";
+import {
+  EMPLOYEE_STATUSES,
+  EMPLOYEE_STATUS_LABELS,
+} from "@/features/employees/employee.constants";
 
 import {
   useCreateEmployee,
@@ -39,10 +51,7 @@ import {
 import type {
   Employee,
   EmployeeInput,
-  EmployeeStatus,
 } from "@/features/employees/employees.types";
-
-const STATUSES: EmployeeStatus[] = ["active", "on_leave", "inactive"];
 
 type Editor = { mode: "create" } | { mode: "edit"; employee: Employee } | null;
 
@@ -68,6 +77,7 @@ export function EmployeesPage() {
       "linkedUserName",
     ] as const,
     defaultSortBy: "fullName",
+    filterKeys: ["q", "status", "departmentId"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
@@ -76,7 +86,7 @@ export function EmployeesPage() {
 
   const statusParam = params.get("status");
 
-  const status = STATUSES.find((value) => value === statusParam);
+  const status = EMPLOYEE_STATUSES.find((value) => value === statusParam);
 
   const departmentId = params.get("departmentId") || undefined;
 
@@ -105,29 +115,6 @@ export function EmployeesPage() {
   const total = data?.pagination.total ?? 0;
 
   // Search and filters preserve sorting preferences.
-  function updateFilter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
-
-  function clearFilters() {
-    const next = new URLSearchParams(params);
-
-    for (const key of ["q", "status", "departmentId", "page"]) {
-      next.delete(key);
-    }
-
-    setParams(next);
-  }
-
   async function handleSave(input: EmployeeInput) {
     if (!canManage || !editor) {
       throw new Error("Not authorized to manage employees");
@@ -238,40 +225,62 @@ export function EmployeesPage() {
               searchValue={q}
               searchLabel="Search employees"
               placeholder="Name, email or designation..."
-              onSearch={(value) => updateFilter("q", value)}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q || status || departmentId)}
-              onClear={clearFilters}
+              onClear={tableState.clearFilters}
             >
               {/* Employment status */}
-              <select
-                aria-label="Filter by employment status"
-                value={status ?? ""}
-                onChange={(event) => updateFilter("status", event.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              <Select
+                value={status ?? "all"}
+                onValueChange={(value) =>
+                  tableState.setFilter("status", value === "all" ? "" : value)
+                }
               >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="on_leave">On leave</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                <SelectTrigger
+                  aria-label="Filter by employment status"
+                  className="h-10 w-full sm:w-44"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+
+                  {EMPLOYEE_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {EMPLOYEE_STATUS_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {/* Department */}
-              <select
-                aria-label="Filter by department"
-                value={departmentId ?? ""}
-                onChange={(event) =>
-                  updateFilter("departmentId", event.target.value)
+              <Select
+                value={departmentId ?? "all"}
+                onValueChange={(value) =>
+                  tableState.setFilter(
+                    "departmentId",
+                    value === "all" ? "" : value,
+                  )
                 }
-                className="h-10 max-w-[200px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <option value="">All departments</option>
+                <SelectTrigger
+                  aria-label="Filter by department"
+                  className="h-10 w-full sm:w-48"
+                >
+                  <SelectValue />
+                </SelectTrigger>
 
-                {departmentsQuery.data?.data.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
+                <SelectContent>
+                  <SelectItem value="all">All departments</SelectItem>
+
+                  {departmentsQuery.data?.data.map((department) => (
+                    <SelectItem key={department.id} value={department.id}>
+                      {department.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </DataTableToolbar>
 
             {isPending ? (

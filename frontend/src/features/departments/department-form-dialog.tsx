@@ -1,8 +1,6 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { LoaderCircle } from "lucide-react";
 
 import {
@@ -21,25 +19,15 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { getApiErrorMessage } from "@/lib/api-error";
 
-import type {
-  Department,
-  DepartmentInput,
-} from "./departments.types";
-
-const departmentSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Department name is required")
-    .max(100, "Maximum 100 characters"),
-
-  description: z
-    .string()
-    .trim()
-    .max(500, "Maximum 500 characters"),
-});
-
-type FormValues = z.infer<typeof departmentSchema>;
+import type { Department, DepartmentInput } from "./departments.types";
+import {
+  departmentFormSchema,
+  type DepartmentFormValues,
+} from "./department-form.schema";
+import {
+  getDepartmentFormDefaults,
+  toDepartmentInput,
+} from "./department-form.helpers";
 
 interface DepartmentFormDialogProps {
   department?: Department | null;
@@ -56,32 +44,24 @@ export function DepartmentFormDialog({
 }: DepartmentFormDialogProps) {
   const isEditing = Boolean(department);
 
-  const [serverError, setServerError] = useState<string | null>(
-    null
-  );
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(departmentSchema),
-    defaultValues: {
-      name: department?.name ?? "",
-      description: department?.description ?? "",
-    },
+  } = useForm<DepartmentFormValues>({
+    resolver: zodResolver(departmentFormSchema),
+    defaultValues: getDepartmentFormDefaults(department),
   });
 
   const isSaving = isPending || isSubmitting;
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: DepartmentFormValues) {
     setServerError(null);
 
     try {
-      await onSave({
-        name: values.name,
-        description: values.description || null,
-      });
+      await onSave(toDepartmentInput(values));
     } catch (error) {
       setServerError(getApiErrorMessage(error));
     }
@@ -147,9 +127,7 @@ export function DepartmentFormDialog({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="department-description">
-              Description
-            </Label>
+            <Label htmlFor="department-description">Description</Label>
 
             <Textarea
               id="department-description"
@@ -159,9 +137,7 @@ export function DepartmentFormDialog({
               disabled={isSaving}
               aria-invalid={Boolean(errors.description)}
               aria-describedby={
-                errors.description
-                  ? "department-description-error"
-                  : undefined
+                errors.description ? "department-description-error" : undefined
               }
               {...register("description")}
             />

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,52 +17,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import { useAuth } from "@/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { UserRole } from "@/features/auth/auth.types";
+import type { ManagedUser } from "@/features/users/users-api";
+import { useUsers, useUpdateUser } from "@/features/users/users.queries";
+import { UserDirectoryTable } from "@/features/users/user-table";
 import {
-  usersApi,
-  type ManagedUser,
-  type UpdateUserInput,
-} from "@/features/users/users-api";
-
-import { employeeKeys } from "@/features/employees/employees.queries";
-import { projectKeys } from "@/features/projects/projects.queries";
-
-interface PendingChange {
-  user: ManagedUser;
-  payload: UpdateUserInput;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  destructive?: boolean;
-}
-
-const roleLabels: Record<UserRole, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  viewer: "Viewer",
-};
+  getRoleChangeConfirmation,
+  getStatusChangeConfirmation,
+  type PendingUserChange,
+} from "@/features/users/users.helpers";
 
 export function UsersPage() {
   const { user: currentUser } = useAuth();
-  const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
   const [searchDraft, setSearchDraft] = useState("");
@@ -71,7 +39,7 @@ export function UsersPage() {
 
   const pageSize = 20;
 
-  const [pendingChange, setPendingChange] = useState<PendingChange | null>(
+  const [pendingChange, setPendingChange] = useState<PendingUserChange | null>(
     null,
   );
 
@@ -82,80 +50,20 @@ export function UsersPage() {
     error,
     isFetching,
     refetch,
-  } = useQuery({
-    queryKey: ["users", "list", { page, pageSize, q: search }],
-    queryFn: ({ signal }) =>
-      usersApi.list(
-        {
-          page,
-          pageSize,
-          q: search || undefined,
-        },
-        signal,
-      ),
-    staleTime: 30_000,
-    retry: false,
-  });
+  } = useUsers({ page, pageSize, q: search || undefined });
 
   const users = userData?.users;
   const pagination = userData?.pagination;
-
-  const updateMutation = useMutation({
-    mutationFn: (change: PendingChange) =>
-      usersApi.update(change.user.id, change.payload),
-
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["users"],
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: employeeKeys.all,
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: projectKeys.options(),
-      });
-    },
-  });
+  const updateMutation = useUpdateUser();
 
   function requestRoleChange(target: ManagedUser, nextRole: UserRole) {
-    if (target.id === currentUser?.id || nextRole === target.role) {
-      return;
-    }
-
-    setPendingChange({
-      user: target,
-      payload: { role: nextRole },
-      title: "Change user role?",
-      description:
-        `Change ${target.name}'s role from ` +
-        `${roleLabels[target.role]} to ${roleLabels[nextRole]}? ` +
-        "Their permissions will change immediately.",
-      confirmLabel: "Change role",
-      destructive: target.role === "admin",
-    });
+    if (target.id === currentUser?.id || nextRole === target.role) return;
+    setPendingChange(getRoleChangeConfirmation(target, nextRole));
   }
 
   function requestStatusChange(target: ManagedUser) {
-    if (target.id === currentUser?.id) {
-      return;
-    }
-
-    const activate = !target.isActive;
-
-    setPendingChange({
-      user: target,
-      payload: { isActive: activate },
-      title: activate ? "Activate account?" : "Deactivate account?",
-      description: activate
-        ? `Activate ${target.name}'s account? ` +
-          "They will be able to sign in again."
-        : `Deactivate ${target.name}'s account? ` +
-          "Their active sessions will be invalidated.",
-      confirmLabel: activate ? "Activate account" : "Deactivate account",
-      destructive: !activate,
-    });
+    if (target.id === currentUser?.id) return;
+    setPendingChange(getStatusChangeConfirmation(target));
   }
 
   async function confirmChange() {
@@ -164,7 +72,10 @@ export function UsersPage() {
     }
 
     try {
-      await updateMutation.mutateAsync(pendingChange);
+      await updateMutation.mutateAsync({
+        id: pendingChange.user.id,
+        input: pendingChange.payload,
+      });
       toast.success("User account updated successfully");
       setPendingChange(null);
     } catch (mutationError) {
@@ -254,126 +165,15 @@ export function UsersPage() {
                 description="There are no accounts available."
               />
             ) : (
-              <div
-                className="overflow-x-auto rounded-md border"
-                aria-busy={isPending || isFetching}
-              >
-                {isPending && (
-                  <p className="sr-only" role="status">
-                    Loading user accounts...
-                  </p>
-                )}
-
-                <Table aria-label="User accounts">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-
-                  <TableBody>
-                    {isPending
-                      ? // Skeleton rows during initial loading.
-                        Array.from({ length: 5 }, (_, rowIndex) => (
-                          <TableRow key={`skeleton-${rowIndex}`}>
-                            {Array.from({ length: 4 }, (_, columnIndex) => (
-                              <TableCell
-                                key={`skeleton-${rowIndex}-${columnIndex}`}
-                              >
-                                <div
-                                  className="h-4 w-full animate-pulse rounded bg-muted motion-reduce:animate-none"
-                                  aria-hidden="true"
-                                />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      : // Actual user rows once data is available.
-                        users?.map((account) => {
-                          const isSelf = account.id === currentUser?.id;
-
-                          return (
-                            <TableRow key={account.id}>
-                              <TableCell>
-                                <div className="min-w-40 space-y-1">
-                                  <p className="font-medium">
-                                    {account.name}
-                                    {isSelf && (
-                                      <span className="ml-2 text-xs text-muted-foreground">
-                                        (You)
-                                      </span>
-                                    )}
-                                  </p>
-
-                                  <p className="text-xs text-muted-foreground">
-                                    {account.email}
-                                  </p>
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <Select
-                                  value={account.role}
-                                  disabled={isSelf || updateMutation.isPending}
-                                  onValueChange={(value) => {
-                                    if (
-                                      value === "admin" ||
-                                      value === "manager" ||
-                                      value === "viewer"
-                                    ) {
-                                      requestRoleChange(account, value);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger
-                                    aria-label={`Role for ${account.name}`}
-                                    className="w-32"
-                                  >
-                                    <SelectValue />
-                                  </SelectTrigger>
-
-                                  <SelectContent>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="manager">
-                                      Manager
-                                    </SelectItem>
-                                    <SelectItem value="viewer">
-                                      Viewer
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    account.isActive ? "outline" : "destructive"
-                                  }
-                                >
-                                  {account.isActive ? "Active" : "Inactive"}
-                                </Badge>
-                              </TableCell>
-
-                              <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={isSelf || updateMutation.isPending}
-                                  onClick={() => requestStatusChange(account)}
-                                >
-                                  {account.isActive ? "Deactivate" : "Activate"}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                  </TableBody>
-                </Table>
-              </div>
+              <UserDirectoryTable
+                users={users}
+                currentUserId={currentUser?.id}
+                isPending={isPending}
+                isFetching={isFetching}
+                isUpdating={updateMutation.isPending}
+                onRoleChange={requestRoleChange}
+                onStatusChange={requestStatusChange}
+              />
             )}
 
             <p className="text-xs leading-5 text-muted-foreground">

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,47 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useProjectFormOptions } from "./projects.queries";
 import type { Project, ProjectInput } from "./projects.types";
+import { projectFormSchema, type ProjectFormValues } from "./project-form.schema";
+import { getProjectFormDefaults, toProjectInput } from "./project-form.helpers";
 
-const formSchema = z
-  .object({
-    name: z.string().trim().min(1, "Project name is required").max(160),
-    description: z.string().trim().max(2000, "Maximum 2,000 characters"),
-    clientId: z.uuid("Choose a client"),
-    managerEmployeeId: z.string().nullable(),
-    status: z.enum(["planning", "active", "on_hold", "completed"]),
-    priority: z.enum(["low", "medium", "high"]),
-    progress: z.number().int().min(0, "Minimum 0").max(100, "Maximum 100"),
-    startDate: z
-      .string()
-      .refine(
-        (value) => !value || z.iso.date().safeParse(value).success,
-        "Invalid start date",
-      ),
-    dueDate: z
-      .string()
-      .refine(
-        (value) => !value || z.iso.date().safeParse(value).success,
-        "Invalid due date",
-      ),
-  })
-  .superRefine((value, ctx) => {
-    if (value.startDate && value.dueDate && value.dueDate < value.startDate) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["dueDate"],
-        message: "Due date must not precede the start date",
-      });
-    }
-    if (value.status === "completed" && value.progress !== 100) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["progress"],
-        message: "Completed projects must have 100% progress",
-      });
-    }
-  });
-
-type FormValues = z.infer<typeof formSchema>;
 interface Props {
   project?: Project | null;
   isPending: boolean;
@@ -92,35 +53,19 @@ export function ProjectFormDialog({
     handleSubmit,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: project?.name ?? "",
-      description: project?.description ?? "",
-      clientId: project?.clientId ?? "",
-      managerEmployeeId: project?.managerEmployeeId ?? null,
-      status: project?.status ?? "planning",
-      priority: project?.priority ?? "medium",
-      progress: project?.progress ?? 0,
-      startDate: project?.startDate ?? "",
-      dueDate: project?.dueDate ?? "",
-    },
+  } = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: getProjectFormDefaults(project),
   });
   const isSaving = isPending || isSubmitting;
   const noActiveClients =
     !optionsLoading &&
     !options?.clients.some((client) => client.status === "active");
 
-  async function submit(values: FormValues) {
+  async function submit(values: ProjectFormValues) {
     setServerError(null);
     try {
-      await onSave({
-        ...values,
-        description: values.description || null,
-        managerEmployeeId: values.managerEmployeeId || null,
-        startDate: values.startDate || null,
-        dueDate: values.dueDate || null,
-      });
+      await onSave(toProjectInput(values));
     } catch (error) {
       setServerError(getApiErrorMessage(error));
     }
@@ -234,7 +179,7 @@ export function ProjectFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="project-manager">
-                Project manager (optional)
+                Project manager
               </Label>
               <Controller
                 name="managerEmployeeId"
@@ -270,10 +215,7 @@ export function ProjectFormDialog({
                   </Select>
                 )}
               />
-              <p className="text-xs text-muted-foreground">
-                Only active employees linked to active Admin/Manager accounts
-                are eligible.
-              </p>
+              
             </div>
             <div className="space-y-2">
               <Label htmlFor="project-status">Status</Label>
@@ -283,7 +225,7 @@ export function ProjectFormDialog({
                 render={({ field }) => (
                   <Select
                     value={field.value}
-                    onValueChange={(value: FormValues["status"]) => {
+                    onValueChange={(value: ProjectFormValues["status"]) => {
                       field.onChange(value);
                       if (value === "completed")
                         setValue("progress", 100, { shouldValidate: true });
@@ -345,7 +287,7 @@ export function ProjectFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="project-start-date">Start date (optional)</Label>
+              <Label htmlFor="project-start-date">Start date</Label>
               <Input
                 id="project-start-date"
                 type="date"
@@ -359,7 +301,7 @@ export function ProjectFormDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="project-due-date">Due date (optional)</Label>
+              <Label htmlFor="project-due-date">Due date</Label>
               <Input
                 id="project-due-date"
                 type="date"

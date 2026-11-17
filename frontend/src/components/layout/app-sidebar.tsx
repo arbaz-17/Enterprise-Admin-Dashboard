@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 
 import {
   navigationGroups,
-  accountNavigation,
   isNavigationActive,
   type NavigationItem,
 } from "@/config/navigation";
@@ -35,8 +34,6 @@ const navButtonClass =
   "font-medium transition-colors cursor-pointer" +
   "[&>svg]:size-[18px] [&>svg]:shrink-0";
 
-// Temporary brand mark, matching the placeholder used on the login page.
-// Replace this SVG with the official Optimus Fox logo when available.
 function OptimusFoxLogo() {
   return (
     <div
@@ -225,11 +222,6 @@ export function AppSidebar() {
       >
         <nav aria-label="Account navigation">
           <SidebarMenu className="gap-1">
-            {accountNavigation
-              .filter(
-                (item) => !item.permission || hasPermission(item.permission),
-              )
-              .map(renderNavItem)}
 
             {/* Sign out belongs directly below Settings, not in the header. */}
             <SidebarMenuItem>

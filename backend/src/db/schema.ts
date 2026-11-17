@@ -428,3 +428,120 @@ export type ProjectAssignment =
 
 export type NewProjectAssignment =
   typeof projectAssignments.$inferInsert;
+
+
+
+ // --------------------------------------------------
+ // Audit Logs
+ // --------------------------------------------------
+
+ export const auditLogs = appPrivate.table(
+   "audit_logs",
+   {
+     id: uuid("id").defaultRandom().primaryKey(),
+
+     // Optional relation to a real application user.
+     actorUserId: uuid("actor_user_id")
+       .references(() => users.id, {
+         onDelete: "set null",
+       }),
+
+     // Snapshot name, retained even if the user is deleted.
+     actorName: text("actor_name").notNull(),
+
+     action: text("action", {
+       enum: [
+         "create",
+         "update",
+         "delete",
+         "assign",
+         "unassign",
+         "login",
+         "logout",
+         "role_change",
+         "status_change",
+       ],
+     }).notNull(),
+
+     resourceType: text("resource_type", {
+       enum: [
+         "user",
+         "department",
+         "employee",
+         "client",
+         "project",
+         "project_assignment",
+         "authentication",
+       ],
+     }).notNull(),
+
+     // Not a foreign key: the resource could be
+     // any of the supported business entities.
+     resourceId: uuid("resource_id"),
+
+     resourceName: text("resource_name"),
+
+     description: text("description").notNull(),
+
+     outcome: text("outcome", {
+       enum: ["success", "failure"],
+     })
+       .notNull()
+       .default("success"),
+
+     occurredAt: timestamp("occurred_at", {
+       withTimezone: true,
+     })
+       .notNull()
+       .defaultNow(),
+   },
+   (table) => [
+     index("audit_logs_occurred_at_idx")
+       .on(table.occurredAt.desc(), table.id.desc()),
+
+     index("audit_logs_actor_user_id_idx")
+       .on(table.actorUserId),
+
+     index("audit_logs_action_idx")
+       .on(table.action),
+
+     check(
+       "audit_logs_actor_name_not_blank",
+       sql`length(btrim(${table.actorName})) > 0`,
+     ),
+
+     check(
+       "audit_logs_description_not_blank",
+       sql`length(btrim(${table.description})) > 0`,
+     ),
+
+     check(
+       "audit_logs_action_check",
+       sql`${table.action} IN (
+         'create', 'update', 'delete',
+         'assign', 'unassign',
+         'login', 'logout',
+         'role_change', 'status_change'
+       )`,
+     ),
+
+     check(
+       "audit_logs_resource_type_check",
+       sql`${table.resourceType} IN (
+         'user', 'department', 'employee',
+         'client', 'project',
+         'project_assignment', 'authentication'
+       )`,
+     ),
+
+     check(
+       "audit_logs_outcome_check",
+       sql`${table.outcome} IN ('success', 'failure')`,
+     ),
+   ],
+ );
+
+ export type AuditLog = typeof auditLogs.$inferSelect;
+
+ export type NewAuditLog = typeof auditLogs.$inferInsert;
+

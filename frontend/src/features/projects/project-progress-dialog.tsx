@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,18 +23,12 @@ import {
 } from "@/components/ui/select";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { Project, ProjectStatusInput } from "./projects.types";
+import {
+  projectProgressSchema,
+  type ProjectProgressFormValues,
+} from "./project-form.schema";
+import { getProjectProgressDefaults } from "./project-form.helpers";
 
-const schema = z
-  .object({
-    status: z.enum(["planning", "active", "on_hold", "completed"]),
-    progress: z.number().int().min(0).max(100),
-  })
-  .refine((v) => v.status !== "completed" || v.progress === 100, {
-    path: ["progress"],
-    message: "Completed projects must have 100% progress",
-  });
-
-type Values = z.infer<typeof schema>;
 interface Props {
   project: Project;
   isPending: boolean;
@@ -56,12 +49,12 @@ export function ProjectProgressDialog({
     handleSubmit,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    defaultValues: { status: project.status, progress: project.progress },
+  } = useForm<ProjectProgressFormValues>({
+    resolver: zodResolver(projectProgressSchema),
+    defaultValues: getProjectProgressDefaults(project),
   });
   const saving = isPending || isSubmitting;
-  async function submit(values: Values) {
+  async function submit(values: ProjectProgressFormValues) {
     setError(null);
     try {
       await onSave(values);
@@ -94,7 +87,9 @@ export function ProjectProgressDialog({
               render={({ field }) => (
                 <Select
                   value={field.value}
-                  onValueChange={(value: Values["status"]) => {
+                  onValueChange={(
+                    value: ProjectProgressFormValues["status"],
+                  ) => {
                     field.onChange(value);
                     if (value === "completed")
                       setValue("progress", 100, { shouldValidate: true });

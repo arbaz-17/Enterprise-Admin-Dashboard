@@ -13,6 +13,8 @@ export const dashboardKeys = {
   departments: () => [...dashboardKeys.all, "departments"] as const,
 
   recentProjects: () => [...dashboardKeys.all, "recent-projects"] as const,
+
+  operations: () => [...dashboardKeys.all, "operations"] as const,
 };
 
 // Shared behavior for all independent dashboard queries.
@@ -59,6 +61,14 @@ export function useDashboardRecentProjects() {
   return useQuery({
     queryKey: dashboardKeys.recentProjects(),
     queryFn: ({ signal }) => dashboardApi.recentProjects(signal),
+    ...dashboardQueryOptions,
+  });
+}
+
+export function useDashboardOperations() {
+  return useQuery({
+    queryKey: dashboardKeys.operations(),
+    queryFn: ({ signal }) => dashboardApi.operations(signal),
     ...dashboardQueryOptions,
   });
 }

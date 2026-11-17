@@ -1,39 +1,16 @@
-
 import type { ColumnDef } from "@tanstack/react-table";
 import { Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatUtcDate } from "@/lib/formatters/date";
+import { EMPLOYEE_STATUS_LABELS } from "@/features/employees/employee.constants";
 
-import type {
-  EmployeeStatus,
-  ProjectTeamMember,
-} from "./team-assignments.types";
+import type { ProjectTeamMember } from "./team-assignments.types";
 
 interface TeamMemberColumnOptions {
   canManage: boolean;
   onRemove: (member: ProjectTeamMember) => void;
-}
-
-const statusLabels: Record<EmployeeStatus, string> = {
-  active: "Active",
-  on_leave: "On leave",
-  inactive: "Inactive",
-};
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
 }
 
 export function getTeamMemberColumns({
@@ -49,9 +26,7 @@ export function getTeamMemberColumns({
 
         return (
           <div className="min-w-48">
-            <div className="font-medium">
-              {member.fullName}
-            </div>
+            <div className="font-medium">{member.fullName}</div>
 
             <div className="text-xs text-muted-foreground">
               {member.workEmail}
@@ -64,9 +39,7 @@ export function getTeamMemberColumns({
       accessorKey: "designation",
       header: "Designation",
       cell: ({ row }) => (
-        <span className="whitespace-normal">
-          {row.original.designation}
-        </span>
+        <span className="whitespace-normal">{row.original.designation}</span>
       ),
     },
     {
@@ -85,14 +58,8 @@ export function getTeamMemberColumns({
         const status = row.original.status;
 
         return (
-          <Badge
-            variant={
-              status === "inactive"
-                ? "destructive"
-                : "outline"
-            }
-          >
-            {statusLabels[status]}
+          <Badge variant={status === "inactive" ? "destructive" : "outline"}>
+            {EMPLOYEE_STATUS_LABELS[status]}
           </Badge>
         );
       },
@@ -102,23 +69,17 @@ export function getTeamMemberColumns({
       header: "Assigned",
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-muted-foreground">
-          {formatDate(row.original.assignedAt)}
+          {formatUtcDate(row.original.assignedAt)}
         </span>
       ),
     },
   ];
 
-  // Only admins and authorized project managers
-  // receive the remove-member action.
   if (canManage) {
     columns.push({
       id: "actions",
 
-      header: () => (
-        <div className="text-right">
-          Actions
-        </div>
-      ),
+      header: () => <div className="text-right">Actions</div>,
 
       cell: ({ row }) => {
         const member = row.original;
@@ -133,10 +94,7 @@ export function getTeamMemberColumns({
               className="text-destructive hover:text-destructive"
               onClick={() => onRemove(member)}
             >
-              <Trash2
-                className="size-4"
-                aria-hidden="true"
-              />
+              <Trash2 className="size-4" aria-hidden="true" />
             </Button>
           </div>
         );

@@ -26,6 +26,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
+import { PROJECT_STATUS_LABELS } from "@/features/projects/project.constants";
+
 import type {
   DepartmentCount,
   MonthlyActivityPoint,
@@ -61,13 +63,6 @@ const departmentConfig = {
     color: "var(--chart-1)",
   },
 } satisfies ChartConfig;
-
-const statusLabels: Record<ProjectStatus, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On hold",
-  completed: "Completed",
-};
 
 const statusColors: Record<ProjectStatus, string> = {
   planning: "var(--chart-2)",
@@ -171,7 +166,7 @@ export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
 // Project status distribution
 export function ProjectStatusChart({ data }: { data: ProjectStatusData }) {
   const chartData = data.map((item) => ({
-    name: statusLabels[item.status],
+    name: PROJECT_STATUS_LABELS[item.status],
     value: item.count,
     color: statusColors[item.status],
   }));

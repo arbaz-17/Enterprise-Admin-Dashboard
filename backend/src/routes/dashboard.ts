@@ -6,6 +6,7 @@ import { clients, departments, employees, projects } from "../db/schema.js";
 import { hasPermission, type Role } from "../config/permissions.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requirePermission } from "../middleware/require-permission.js";
+import { getOperationsOverview } from "../modules/dashboard/operations.js";
 
 export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
@@ -227,6 +228,18 @@ dashboardRouter.get(
         canViewProjects,
         generatedAt: new Date().toISOString(),
       },
+    });
+  },
+);
+
+// One cohesive operations snapshot; existing dashboard endpoints stay independent.
+dashboardRouter.get(
+  "/operations",
+  requirePermission("dashboard:read"),
+  async (req, res) => {
+    const operations = await getOperationsOverview(req.authUser!.role);
+    res.status(200).json({
+      data: { operations, generatedAt: new Date().toISOString() },
     });
   },
 );

@@ -4,35 +4,15 @@ import { Pencil, Trash2, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatDateOnly } from "@/lib/formatters/date";
+import { PROJECT_STATUS_LABELS } from "./project.constants";
 import type { Project, ProjectStatus } from "./projects.types";
-
-export const statusLabels: Record<ProjectStatus, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On hold",
-  completed: "Completed",
-};
 
 interface ProjectColumnOptions {
   canManage: boolean;
   canDelete: boolean;
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-
-  const date = new Date(`${value}T00:00:00Z`);
-
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
 }
 
 function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
@@ -46,7 +26,7 @@ function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
             : "outline"
       }
     >
-      {statusLabels[status]}
+      {PROJECT_STATUS_LABELS[status]}
     </Badge>
   );
 }
@@ -153,7 +133,7 @@ export function getProjectColumns({
       header: "Due date",
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-muted-foreground">
-          {formatDate(row.original.dueDate)}
+          {formatDateOnly(row.original.dueDate)}
         </span>
       ),
     },

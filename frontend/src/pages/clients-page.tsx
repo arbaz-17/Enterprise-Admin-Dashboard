@@ -70,6 +70,7 @@ export function ClientsPage() {
       "updatedAt",
     ] as const,
     defaultSortBy: "name",
+    filterKeys: ["q", "status"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
@@ -98,29 +99,6 @@ export function ClientsPage() {
   const remove = useDeleteClient();
 
   const total = data?.pagination.total ?? 0;
-
-  function setFilter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
-
-  function clearFilters() {
-    const next = new URLSearchParams(params);
-
-    for (const key of ["q", "status", "page"]) {
-      next.delete(key);
-    }
-
-    setParams(next);
-  }
 
   async function handleSave(payload: ClientInput): Promise<void> {
     if (!canManage || !editor) {
@@ -191,6 +169,7 @@ export function ClientsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Clients",
     getRowId: (client: Client) => client.id,
+    virtualize: true,
   };
 
   return (
@@ -232,14 +211,14 @@ export function ClientsPage() {
               searchValue={q}
               searchLabel="Search clients"
               placeholder="Search clients..."
-              onSearch={(value) => setFilter("q", value)}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q || status)}
-              onClear={clearFilters}
+              onClear={tableState.clearFilters}
             >
               <Select
                 value={status ?? "all"}
                 onValueChange={(value) =>
-                  setFilter("status", value === "all" ? "" : value)
+                  tableState.setFilter("status", value === "all" ? "" : value)
                 }
               >
                 <SelectTrigger

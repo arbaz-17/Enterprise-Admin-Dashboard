@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,26 +23,8 @@ import {
 } from "@/components/ui/select";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { Client, ClientInput } from "./clients.types";
-
-const clientFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Client name is required")
-    .max(160, "Maximum 160 characters"),
-  contactName: z.string().trim().max(120, "Maximum 120 characters"),
-  contactEmail: z
-    .string()
-    .trim()
-    .max(254, "Maximum 254 characters")
-    .refine(
-      (value) => value === "" || z.email().safeParse(value).success,
-      "Enter a valid contact email address",
-    ),
-  status: z.enum(["active", "inactive"]),
-});
-
-type ClientFormValues = z.infer<typeof clientFormSchema>;
+import { clientFormSchema, type ClientFormValues } from "./client-form.schema";
+import { getClientFormDefaults, toClientInput } from "./client-form.helpers";
 
 interface ClientFormDialogProps {
   client?: Client | null;
@@ -66,12 +47,7 @@ export function ClientFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues: {
-      name: client?.name ?? "",
-      contactName: client?.contactName ?? "",
-      contactEmail: client?.contactEmail ?? "",
-      status: client?.status ?? "active",
-    },
+    defaultValues: getClientFormDefaults(client),
   });
 
   const isSaving = isPending || isSubmitting;
@@ -79,14 +55,7 @@ export function ClientFormDialog({
   async function onSubmit(values: ClientFormValues) {
     setServerError(null);
     try {
-      await onSave({
-        name: values.name,
-        contactName: values.contactName || null,
-        contactEmail: values.contactEmail
-          ? values.contactEmail.toLowerCase()
-          : null,
-        status: values.status,
-      });
+      await onSave(toClientInput(values));
     } catch (error) {
       setServerError(getApiErrorMessage(error));
     }
@@ -142,11 +111,11 @@ export function ClientFormDialog({
 
           <div className="space-y-2">
             <Label htmlFor="client-contact-name">
-              Contact person (optional)
+              Contact person
             </Label>
             <Input
               id="client-contact-name"
-              placeholder="e.g. Ayesha Khan"
+              placeholder="e.g. Arbaz Ahmad"
               maxLength={120}
               autoComplete="name"
               disabled={isSaving}
@@ -169,7 +138,7 @@ export function ClientFormDialog({
 
           <div className="space-y-2">
             <Label htmlFor="client-contact-email">
-              Contact email (optional)
+              Contact email
             </Label>
             <Input
               id="client-contact-email"

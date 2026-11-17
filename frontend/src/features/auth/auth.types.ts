@@ -14,7 +14,8 @@ export type Permission =
   | "projects:create"
   | "projects:manage"
   | "projects:delete"
-  | "assignments:manage";
+  | "assignments:manage"
+  | "audits:read";
 
 export interface AuthUser {
   id: string;

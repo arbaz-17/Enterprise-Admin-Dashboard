@@ -1,11 +1,11 @@
 import {
   LayoutDashboard,
-  Settings2,
   Building2,
   UsersRound,
   BriefcaseBusiness,
   FolderKanban,
   ShieldCheck,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,12 +18,12 @@ export interface NavigationItem {
   permission?: Permission;
 }
 
-export interface NavigationGroup {
+interface NavigationGroup {
   label: string;
   items: NavigationItem[];
 }
 
-export interface NavigationBreadcrumb {
+interface NavigationBreadcrumb {
   label: string;
   href?: string;
 }
@@ -83,17 +83,17 @@ export const navigationGroups: NavigationGroup[] = [
         icon: ShieldCheck,
         permission: "users:manage",
       },
+
+      {
+        label: "Audit Logs",
+        href: "/audits",
+        icon: ScrollText,
+        permission: "audits:read",
+      },
     ],
   },
 ];
 
-export const accountNavigation: NavigationItem[] = [
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings2,
-  },
-];
 
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -112,17 +112,6 @@ export function findNavigationItem(pathname: string) {
         item,
       };
     }
-  }
-
-  const accountItem = accountNavigation.find((entry) =>
-    isNavigationActive(pathname, entry.href),
-  );
-
-  if (accountItem) {
-    return {
-      group: "Account",
-      item: accountItem,
-    };
   }
 
   return null;

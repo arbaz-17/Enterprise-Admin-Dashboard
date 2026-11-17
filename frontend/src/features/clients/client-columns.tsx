@@ -3,25 +3,13 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatUtcDate } from "@/lib/formatters/date";
 import type { Client } from "./clients.types";
 
 interface ClientColumnOptions {
   canManage: boolean;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "—";
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
 }
 
 export function getClientColumns({
@@ -73,7 +61,7 @@ export function getClientColumns({
       header: "Updated",
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-muted-foreground">
-          {formatDate(row.original.updatedAt)}
+          {formatUtcDate(row.original.updatedAt)}
         </span>
       ),
     },

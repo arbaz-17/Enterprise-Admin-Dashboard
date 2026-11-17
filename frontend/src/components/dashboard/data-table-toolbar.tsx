@@ -1,9 +1,20 @@
-import type { FormEvent, ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const SEARCH_DEBOUNCE_MS = 350;
 
 interface DataTableToolbarProps {
   searchValue: string;
@@ -15,6 +26,12 @@ interface DataTableToolbarProps {
   children?: ReactNode;
 }
 
+interface SearchDraft {
+  // Tracks the committed search that this draft was based on.
+  source: string;
+  value: string;
+}
+
 export function DataTableToolbar({
   searchValue,
   onSearch,
@@ -24,16 +41,84 @@ export function DataTableToolbar({
   onClear,
   children,
 }: DataTableToolbarProps) {
+  const searchId = useId();
+  const [draft, setDraft] = useState<SearchDraft>({
+    source: searchValue,
+    value: searchValue,
+  });
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearchRef = useRef(onSearch);
+
+  // Page callbacks close over URL parameters or filters, which may change
+  // while a debounce timer is pending. Always invoke the newest callback.
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
+  const cancelPendingSearch = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  // External changes (e.g. browser Back/Forward) supersede a pending draft.
+  useEffect(() => {
+    cancelPendingSearch();
+  }, [searchValue, cancelPendingSearch]);
+
+  // Never apply a delayed search after this toolbar has unmounted.
+  useEffect(() => cancelPendingSearch, [cancelPendingSearch]);
+
+  // Keep the draft in sync when URL navigation changes the committed value.
+  // The guarded render-time adjustment also handles Back/Forward cycles
+  // (e.g. "alpha" -> "beta" -> "alpha") without remounting the input.
+  if (draft.source !== searchValue) {
+    setDraft({ source: searchValue, value: searchValue });
+  }
+
+  const inputValue = draft.source === searchValue ? draft.value : searchValue;
+
+  function commitSearch(value: string) {
+    cancelPendingSearch();
+
+    const nextSearch = value.trim().slice(0, 100);
+    if (nextSearch !== searchValue) {
+      onSearchRef.current(nextSearch);
+    }
+  }
+
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const nextValue = event.target.value.slice(0, 100);
+    setDraft({ source: searchValue, value: nextValue });
+    cancelPendingSearch();
+
+    const normalized = nextValue.trim();
+
+    if (normalized === searchValue) return;
+
+    // Clearing the field (including its native X button) is immediate.
+    if (normalized === "") {
+      onSearchRef.current("");
+      return;
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
+      onSearchRef.current(normalized);
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    commitSearch(inputValue);
+  }
 
-    const formData = new FormData(event.currentTarget);
-
-    const value = String(formData.get("q") ?? "")
-      .trim()
-      .slice(0, 100);
-
-    onSearch(value);
+  function handleClear() {
+    cancelPendingSearch();
+    setDraft({ source: searchValue, value: "" });
+    onClear?.();
   }
 
   return (
@@ -44,7 +129,7 @@ export function DataTableToolbar({
         className="flex min-w-0 flex-1 items-end gap-2"
       >
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
-          <label htmlFor="data-table-search" className="sr-only">
+          <label htmlFor={searchId} className="sr-only">
             {searchLabel}
           </label>
 
@@ -54,11 +139,11 @@ export function DataTableToolbar({
           />
 
           <Input
-            key={searchValue}
-            id="data-table-search"
+            id={searchId}
             name="q"
             type="search"
-            defaultValue={searchValue}
+            value={inputValue}
+            onChange={handleInputChange}
             maxLength={100}
             placeholder={placeholder}
             className="h-10 pl-9"
@@ -73,7 +158,7 @@ export function DataTableToolbar({
       )}
 
       {hasActiveFilters && onClear && (
-        <Button type="button" variant="outline" onClick={onClear}>
+        <Button type="button" variant="outline" onClick={handleClear}>
           <X className="size-4" aria-hidden="true" />
           Clear
         </Button>

@@ -2,24 +2,13 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatLocalDate } from "@/lib/formatters/date";
 import type { Department } from "./departments.types";
 
 interface DepartmentColumnOptions {
   canManage: boolean;
   onEdit: (department: Department) => void;
   onDelete: (department: Department) => void;
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }).format(date);
 }
 
 export function getDepartmentColumns({
@@ -49,7 +38,7 @@ export function getDepartmentColumns({
       header: "Created",
       cell: ({ row }) => (
         <span className="text-muted-foreground">
-          {formatDate(row.original.createdAt)}
+          {formatLocalDate(row.original.createdAt)}
         </span>
       ),
     },

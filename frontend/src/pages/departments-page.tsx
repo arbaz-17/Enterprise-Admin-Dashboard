@@ -61,6 +61,7 @@ export function DepartmentsPage() {
     setParams,
     sortKeys: ["name", "description", "createdAt"] as const,
     defaultSortBy: "name",
+    filterKeys: ["q"] as const,
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
@@ -82,20 +83,6 @@ export function DepartmentsPage() {
   const deleteMutation = useDeleteDepartment();
 
   const total = data?.pagination.total ?? 0;
-
-  // Search preserves sorting and page-size preferences
-  function handleSearch(value: string) {
-    const next = new URLSearchParams(params);
-
-    if (value) {
-      next.set("q", value);
-    } else {
-      next.delete("q");
-    }
-
-    next.delete("page");
-    setParams(next);
-  }
 
   async function handleSaveDepartment(payload: DepartmentInput): Promise<void> {
     if (!editor || !canManage) {
@@ -167,6 +154,7 @@ export function DepartmentsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Departments",
     getRowId: (department: Department) => department.id,
+    virtualize: true,
   };
 
   return (
@@ -208,9 +196,9 @@ export function DepartmentsPage() {
               searchValue={q}
               searchLabel="Search departments"
               placeholder="Search departments..."
-              onSearch={handleSearch}
+              onSearch={(value) => tableState.setFilter("q", value)}
               hasActiveFilters={Boolean(q)}
-              onClear={() => handleSearch("")}
+              onClear={() => tableState.setFilter("q", "")}
             />
 
             {isPending ? (
