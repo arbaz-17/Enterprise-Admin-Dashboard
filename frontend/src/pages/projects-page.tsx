@@ -236,6 +236,7 @@ export function ProjectsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Projects",
     getRowId: (project: Project) => project.id,
+    virtualize: true,
   };
 
   return (

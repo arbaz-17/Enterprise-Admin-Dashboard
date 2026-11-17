@@ -178,6 +178,7 @@ export function ProjectTeamPage() {
                 tableLabel="Project team members"
                 getRowId={(member) => member.id}
                 isFetching={isFetching}
+                virtualize={true}
               />
             )}
           </CardContent>

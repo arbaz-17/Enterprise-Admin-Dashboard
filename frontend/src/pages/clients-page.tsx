@@ -191,6 +191,7 @@ export function ClientsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Clients",
     getRowId: (client: Client) => client.id,
+    virtualize: true,
   };
 
   return (

@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProtectedRoute } from "@/features/auth/protected-route";
 
-
 const LoginPage = lazy(() =>
   import("@/pages/login-page").then((module) => ({
     default: module.LoginPage,
@@ -57,6 +56,12 @@ const ProjectTeamPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("@/pages/users-page").then((module) => ({
     default: module.UsersPage,
+  })),
+);
+
+const AuditsPage = lazy(() =>
+  import("@/pages/audits-page").then((module) => ({
+    default: module.AuditsPage,
   })),
 );
 
@@ -143,6 +148,13 @@ export default function App() {
               element={<ProtectedRoute requiredPermission="users:manage" />}
             >
               <Route path="users" element={<UsersPage />} />
+            </Route>
+
+            {/* Audit Logs */}
+            <Route
+              element={<ProtectedRoute requiredPermission="audits:read" />}
+            >
+              <Route path="audits" element={<AuditsPage />} />
             </Route>
 
             {/* Settings */}

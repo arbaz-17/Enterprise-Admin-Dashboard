@@ -167,6 +167,7 @@ export function DepartmentsPage() {
     onPageSizeChange: tableState.onPageSizeChange,
     tableLabel: "Departments",
     getRowId: (department: Department) => department.id,
+    virtualize: true,
   };
 
   return (

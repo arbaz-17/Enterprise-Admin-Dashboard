@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   FolderKanban,
   ShieldCheck,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -83,6 +84,13 @@ export const navigationGroups: NavigationGroup[] = [
         icon: ShieldCheck,
         permission: "users:manage",
       },
+
+      {
+      label: "Audit Logs",
+      href: "/audits",
+      icon: ScrollText,
+      permission: "audits:read",
+    },
     ],
   },
 ];
