@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import { LoaderCircle, LogOut, X } from "lucide-react";
 import { toast } from "sonner";
+import {BrandMark} from "@/components/shared/logo";
 
 import {
   Sidebar,
@@ -33,38 +34,6 @@ const navButtonClass =
   "brand-nav-item h-11 rounded-xl px-3 text-[13px] " +
   "font-medium transition-colors cursor-pointer" +
   "[&>svg]:size-[18px] [&>svg]:shrink-0";
-
-function OptimusFoxLogo() {
-  return (
-    <div
-      className="flex size-10 shrink-0 items-center justify-center
-                 rounded-xl bg-[#09090e] shadow-sm"
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 96 96" fill="none" className="size-7 text-primary">
-        <path
-          d="M14 18L33 35L48 26L63 35L82 18L76 65L48 84L20 65L14 18Z"
-          stroke="currentColor"
-          strokeWidth="3.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M22 43L39 52L48 68L57 52L74 43"
-          stroke="currentColor"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M41 72L48 77L55 72"
-          stroke="white"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
 
 
 export function AppSidebar() {
@@ -153,7 +122,7 @@ export function AppSidebar() {
                        group-data-[collapsible=icon]:justify-center
                        group-data-[collapsible=icon]:px-0"
           >
-            <OptimusFoxLogo />
+            <BrandMark className="size-10 text-background" />
 
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-[15px] font-bold tracking-tight">
