@@ -12,8 +12,6 @@ import { LoginDemoAccounts } from "./login-demo-accounts";
 import { loginSchema, type LoginFormValues } from "./login.schema";
 import type { LoginCredentials } from "./auth.types";
 
-const showDemoAccounts =
-  import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true";
 
 export function LoginForm() {
   const { login, status } = useAuth();
@@ -185,14 +183,13 @@ export function LoginForm() {
         </Button>
       </form>
 
-      {showDemoAccounts && (
         <LoginDemoAccounts
           emailValue={emailValue}
           passwordValue={passwordValue}
           isSubmitting={isSubmitting}
           onSelect={fillDemoCredentials}
         />
-      )}
+      
     </div>
   );
 }

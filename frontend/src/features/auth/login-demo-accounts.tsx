@@ -1,9 +1,6 @@
 import { Check, Eye, ShieldCheck, UsersRound } from "lucide-react";
 import type { LoginCredentials } from "./auth.types";
 
-// Demonstration accounts already existed in the project. Do not use
-// real production credentials in frontend code: anything shipped to
-// a browser must be treated as public.
 const demoAccounts = [
   {
     role: "Admin",

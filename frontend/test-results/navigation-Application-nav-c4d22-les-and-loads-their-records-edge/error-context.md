@@ -12,17 +12,20 @@
 # Error details
 
 ```
+Test timeout of 30000ms exceeded.
+```
+
+```
 Error: expect(locator).toBeVisible() failed
 
-Locator: getByText('Active projects')
+Locator: getByRole('heading', { name: 'Employees', exact: true })
 Expected: visible
-Error: strict mode violation: getByText('Active projects') resolved to 2 elements:
-    1) <p class="min-w-0 truncate text-sm font-medium text-muted-foreground">Active projects</p> aka getByText('Active projects', { exact: true })
-    2) <p class="mt-1 text-xs text-muted-foreground">0 active projects</p> aka getByText('0 active projects')
+Error: Test timeout of 30000ms exceeded.
 
 Call log:
-  - Expect "toBeVisible" getByText('Active projects') with timeout 10000ms
-  - waiting for getByText('Active projects')
+  - Expect "toBeVisible" getByRole('heading', { name: 'Employees', exact: true }) with timeout 10000ms
+  - waiting for getByRole('heading', { name: 'Employees', exact: true })
+  - Test timeout of 30000ms exceeded.
 
 ```
 
@@ -50,7 +53,7 @@ Call log:
           - generic [ref=e34]: Organization
           - list [ref=e36]:
             - listitem [ref=e37]:
-              - link "Employees" [ref=e38] [cursor=pointer]:
+              - link "Employees" [active] [ref=e38] [cursor=pointer]:
                 - /url: /employees
             - listitem [ref=e44]:
               - link "Departments" [ref=e45] [cursor=pointer]:
@@ -120,11 +123,11 @@ Call log:
           - generic [ref=e161]:
             - generic [ref=e162]:
               - heading "Monthly project activity" [level=2] [ref=e164]
-              - generic [ref=e165]: Projects created and completed over the past six months.
+              - generic [ref=e165]: Projects started and completed over the past six months.
             - generic [ref=e166]:
               - application [ref=e170]
               - generic [ref=e174]:
-                - generic [ref=e175]: Created
+                - generic [ref=e175]: Started
                 - generic [ref=e177]: Completed
           - generic [ref=e181]:
             - generic [ref=e182]:
@@ -273,9 +276,8 @@ Call log:
   70  |     ).toBeVisible();
   71  | 
   72  |     await expect(
-  73  |       page.getByText("Active projects"),
-> 74  |     ).toBeVisible();
-      |       ^ Error: expect(locator).toBeVisible() failed
+  73  |       page.getByText("Active projects", {exact: true}),
+  74  |     ).toBeVisible();
   75  | 
   76  |     // -----------------------------------
   77  |     // 2. Employees
@@ -292,7 +294,8 @@ Call log:
   88  |         name: "Employees",
   89  |         exact: true,
   90  |       }),
-  91  |     ).toBeVisible();
+> 91  |     ).toBeVisible();
+      |       ^ Error: expect(locator).toBeVisible() failed
   92  | 
   93  |     await expect(
   94  |       page
@@ -376,4 +379,21 @@ Call log:
   172 |     await mainNav
   173 |       .getByRole("link", { name: "Users & Roles" })
   174 |       .click();
+  175 | 
+  176 |     await expect(page).toHaveURL(/\/users$/);
+  177 | 
+  178 |     await expect(
+  179 |       page.getByRole("heading", {
+  180 |         name: "Users & Roles",
+  181 |         exact: true,
+  182 |       }),
+  183 |     ).toBeVisible();
+  184 | 
+  185 |     await expect(
+  186 |       page
+  187 |         .getByRole("table", { name: "User accounts" })
+  188 |         .getByText("E2E Team Manager"),
+  189 |     ).toBeVisible();
+  190 | 
+  191 |     // -----------------------------------
 ```

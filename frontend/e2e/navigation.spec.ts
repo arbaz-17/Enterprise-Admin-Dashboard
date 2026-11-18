@@ -70,7 +70,7 @@ test.describe("Application navigation — Browser Workflows", () => {
     ).toBeVisible();
 
     await expect(
-      page.getByText("Active projects"),
+      page.getByText("Active projects", {exact: true}),
     ).toBeVisible();
 
     // -----------------------------------

@@ -43,14 +43,14 @@ const priorityLabels: Record<ProjectPriority, string> = {
 };
 
 const priorityColors: Record<ProjectPriority, string> = {
-  high: "var(--destructive)",
-  medium: "var(--chart-1)",
-  low: "var(--chart-3)",
+  high: "var(--primary)",
+  medium: "var(--primary)",
+  low: "var(--primary)",
 };
 
 const employeeColors: Record<EmployeeStatus, string> = {
-  active: "var(--chart-3)",
-  on_leave: "var(--chart-2)",
+  active: "var(--primary)",
+  on_leave: "var(--chart-3)",
   inactive: "var(--muted-foreground)",
 };
 

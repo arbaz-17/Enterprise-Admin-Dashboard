@@ -40,9 +40,10 @@ type ProjectStatusData = ProjectStatusCount[];
 type DepartmentData = DepartmentCount[];
 
 // Chart colors and labels
+
 const monthlyConfig = {
-  created: {
-    label: "Created",
+  started: {
+    label: "Started",
     color: "var(--chart-1)",
   },
   completed: {
@@ -81,7 +82,7 @@ export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
         </CardTitle>
 
         <CardDescription>
-          Projects created and completed over the past six months.
+          Projects started and completed over the past six months.
         </CardDescription>
       </CardHeader>
 
@@ -123,9 +124,9 @@ export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
 
             <Area
               type="monotone"
-              dataKey="created"
-              stroke="var(--color-created)"
-              fill="var(--color-created)"
+              dataKey="started"
+              stroke="var(--color-started)"
+              fill="var(--color-started)"
               fillOpacity={0.12}
               strokeWidth={2}
             />
@@ -147,7 +148,7 @@ export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
               className="size-2.5 rounded-full bg-chart-1"
               aria-hidden="true"
             />
-            Created
+            Started
           </span>
 
           <span className="flex items-center gap-2">

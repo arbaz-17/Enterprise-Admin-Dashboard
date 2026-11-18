@@ -174,7 +174,7 @@ export function DashboardPage() {
         >
           <DashboardWidget
             title="Monthly project activity"
-            description="Projects created and completed over the past six months."
+            description="Projects started and completed over the past six months."
             query={activityQuery}
             skeleton={<MonthlyActivitySkeleton />}
             render={({ data }) => (
