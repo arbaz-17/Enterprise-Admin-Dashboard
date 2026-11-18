@@ -1,0 +1,296 @@
+
+import { test, expect } from "@playwright/test";
+
+import {
+  E2E_ACCOUNTS,
+  installRoleMocks,
+} from "./mocks/roles";
+
+import {
+  ASSIGNED_PROJECT_ID,
+  installProjectMocks,
+} from "./mocks/projects";
+
+async function loginAsManager(
+  page: import("@playwright/test").Page,
+) {
+  await page.goto("/projects");
+
+  await expect(page).toHaveURL(/\/login$/);
+
+  await page
+    .getByRole("textbox", {
+      name: "Email address",
+    })
+    .fill(E2E_ACCOUNTS.manager.email);
+
+  await page
+    .locator('input[name="password"]')
+    .fill(E2E_ACCOUNTS.manager.password);
+
+  await page
+    .getByRole("button", {
+      name: "Sign in",
+    })
+    .click();
+
+  await expect(page).toHaveURL(/\/projects$/);
+}
+
+test.describe("Project Manager — Browser Workflows", () => {
+  // ------------------------------------------
+  // Test 1: Permission-aware project controls
+  // ------------------------------------------
+
+  test("manager can edit assigned projects but not unassigned projects", async ({
+    page,
+  }) => {
+    const auth = await installRoleMocks(page);
+    const api = await installProjectMocks(page);
+
+    await loginAsManager(page);
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Projects",
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    const table = page.getByRole("table", {
+      name: "Projects",
+    });
+
+    const assignedRow = table.getByRole("row", {
+      name: /E2E Assigned Project/,
+    });
+
+    const unassignedRow = table.getByRole("row", {
+      name: /E2E Unassigned Project/,
+    });
+
+    // Both projects are visible in the directory.
+    await expect(assignedRow).toBeVisible();
+    await expect(unassignedRow).toBeVisible();
+
+    // Manager has limited project permissions.
+    await expect(
+      page.getByText("Manage assigned projects"),
+    ).toBeVisible();
+
+    // No project creation.
+    await expect(
+      page.getByRole("button", {
+        name: "Add project",
+      }),
+    ).toHaveCount(0);
+
+    // Assigned project has an Edit action.
+    await expect(
+      assignedRow.getByRole("button", {
+        name: "Edit E2E Assigned Project",
+      }),
+    ).toBeVisible();
+
+    // Unassigned project has no Edit action.
+    await expect(
+      unassignedRow.getByRole("button", {
+        name: "Edit E2E Unassigned Project",
+      }),
+    ).toHaveCount(0);
+
+    // Manager cannot delete projects.
+    await expect(
+      table.getByRole("button", {
+        name: /Delete E2E/,
+      }),
+    ).toHaveCount(0);
+
+    // Team viewing remains available.
+    await expect(
+      unassignedRow.getByRole("link", {
+        name: "View team for E2E Unassigned Project",
+      }),
+    ).toBeVisible();
+
+    // No data mutation occurred.
+    expect(api.writes).toHaveLength(0);
+
+    expect(auth.unexpectedRequests).toEqual([]);
+  });
+
+  // ------------------------------------------
+  // Test 2: Real edit dialog and persistence
+  // ------------------------------------------
+
+  test("manager updates assigned project progress and sees the change after reload", async ({
+    page,
+  }) => {
+    const auth = await installRoleMocks(page);
+    const api = await installProjectMocks(page);
+
+    await loginAsManager(page);
+
+    const table = page.getByRole("table", {
+      name: "Projects",
+    });
+
+    const assignedRow = table.getByRole("row", {
+      name: /E2E Assigned Project/,
+    });
+
+    const unassignedRow = table.getByRole("row", {
+      name: /E2E Unassigned Project/,
+    });
+
+    // Verify original server data.
+    await expect(assignedRow).toBeVisible();
+
+    await expect(assignedRow).toContainText("Active");
+    await expect(assignedRow).toContainText("30%");
+
+    await expect(unassignedRow).toContainText("10%");
+
+    // --------------------------------------
+    // Open manager's progress-only dialog
+    // --------------------------------------
+
+    await assignedRow
+      .getByRole("button", {
+        name: "Edit E2E Assigned Project",
+      })
+      .click();
+
+    const dialog = page.getByRole("dialog", {
+      name: "Update project progress",
+    });
+
+    await expect(dialog).toBeVisible();
+
+    // Manager should not see full admin fields.
+    await expect(
+      dialog.getByLabel("Project name"),
+    ).toHaveCount(0);
+
+    await expect(
+      dialog.getByLabel("Client"),
+    ).toHaveCount(0);
+
+    // --------------------------------------
+    // Update project status
+    // --------------------------------------
+
+    await dialog
+      .getByRole("combobox", {
+        name: "Status",
+      })
+      .click();
+
+    await page
+      .getByRole("option", {
+        name: "On hold",
+      })
+      .click();
+
+    // --------------------------------------
+    // Update project progress
+    // --------------------------------------
+
+    await dialog
+      .getByRole("spinbutton", {
+        name: "Progress (%)",
+      })
+      .fill("65");
+
+    // Wait for the PATCH request generated by
+    // the real form interaction.
+    const patchResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PATCH" &&
+        new URL(response.url()).pathname ===
+          `/api/projects/${ASSIGNED_PROJECT_ID}`,
+    );
+
+    await dialog
+      .getByRole("button", {
+        name: "Save progress",
+      })
+      .click();
+
+    const patchResponse = await patchResponsePromise;
+
+    expect(patchResponse.status()).toBe(200);
+
+    await expect(dialog).not.toBeVisible();
+
+    // --------------------------------------
+    // Verify the updated table
+    // --------------------------------------
+
+    await expect(assignedRow).toContainText("On hold");
+
+    await expect(assignedRow).toContainText("65%");
+
+    // Verify the exact Manager update payload.
+    expect(api.writes).toEqual([
+      {
+        id: ASSIGNED_PROJECT_ID,
+        payload: {
+          status: "on_hold",
+          progress: 65,
+        },
+      },
+    ]);
+
+    // Unassigned project remains untouched.
+    await expect(unassignedRow).toContainText("Planning");
+    await expect(unassignedRow).toContainText("10%");
+
+    // --------------------------------------
+    // Reload: state must persist in the mock
+    // --------------------------------------
+
+    await page.reload();
+
+    await expect(page).toHaveURL(/\/projects$/);
+
+    await expect(assignedRow).toContainText("On hold");
+    await expect(assignedRow).toContainText("65%");
+
+    await expect(unassignedRow).toContainText("10%");
+
+    // Ensure the project was not accidentally
+    // given full Admin editing permissions.
+    await expect(
+      page.getByRole("button", {
+        name: "Add project",
+      }),
+    ).toHaveCount(0);
+
+    await expect(
+      unassignedRow.getByRole("button", {
+        name: "Edit E2E Unassigned Project",
+      }),
+    ).toHaveCount(0);
+
+    // --------------------------------------
+    // Final assertions
+    // --------------------------------------
+
+    expect(api.writes).toHaveLength(1);
+
+    expect(
+      api.getProjects().find(
+        (project) => project.id === ASSIGNED_PROJECT_ID,
+      ),
+    ).toMatchObject({
+      status: "on_hold",
+      progress: 65,
+    });
+
+    // Initial load, update invalidation, reload.
+    expect(api.getListRequests()).toBeGreaterThanOrEqual(3);
+
+    expect(auth.unexpectedRequests).toEqual([]);
+  });
+});
