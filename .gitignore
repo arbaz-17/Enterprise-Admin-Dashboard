@@ -23,3 +23,8 @@ npm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+# Generated Playwright files
+**/playwright-report/
+**/test-results/
+**/blob-report/

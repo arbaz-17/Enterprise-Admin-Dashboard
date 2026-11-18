@@ -1,75 +1,79 @@
-# React + TypeScript + Vite
+# Enterprise Administration Dashboard — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+The React frontend for the **OptimusFox Enterprise Administration Dashboard**. It provides a permission-aware interface for managing employees, departments, clients, projects, project teams, user accounts, and audit logs, alongside an operational dashboard.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+This directory is the `frontend` workspace in a repository that also contains an Express/PostgreSQL backend.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 19, TypeScript, Vite 8** — application and build tooling
+- **React Router 7** — routing and lazy-loaded pages
+- **TanStack Query, Table & Virtual** — server-state management, tables, and virtualization
+- **Tailwind CSS 4, shadcn/ui, Radix UI** — styling and UI components
+- **React Hook Form + Zod** — forms and validation
+- **Axios** — API requests and session handling
+- **Recharts** — dashboard visualizations
+- **Vitest, React Testing Library, MSW, Playwright** — automated testing
 
-## Expanding the ESLint configuration
+## Key Responsibilities
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Provide responsive, accessible application screens and shared layouts.
+- Manage login, session restoration, permission-based navigation, and protected routes.
+- Integrate with the backend for dashboard data and administration workflows.
+- Support searching, filtering, sorting, pagination, and virtualization where needed.
+- Handle loading, errors, empty states, mutation feedback, and theme switching.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Requires **Node.js 22.12+** and npm. From the **repository root**:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+This starts both workspaces. The frontend runs at **http://localhost:5173**, and Vite proxies `/api` requests to the backend at **http://localhost:5000**. The backend requires its own configuration, including `DATABASE_URL` and `JWT_ACCESS_SECRET`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+To run only the frontend, use `npm run dev:frontend` from the repository root, or `npm run dev` inside `frontend/` (API calls still need a working backend).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Available Commands
 
-```
+Run these from `frontend/`:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Vite development server. |
+| `npm run build` | Type-check and build for production. |
+| `npm run preview` | Preview the production build locally. |
+| `npm run lint` | Run ESLint. |
+| `npm run test` | Run Vitest tests once. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npx playwright test` | Run Playwright browser tests (Microsoft Edge required). |
+
+## Project Structure
+
+| Path | Purpose | Documentation |
+| --- | --- | --- |
+| `src/components/` | Reusable UI, layouts, tables, charts, and themes. | [Components](./src/components/README.md) |
+| `src/config/` | Permission-aware navigation and breadcrumbs. | [Config](./src/config/README.md) |
+| `src/features/` | Domain modules, APIs, queries, forms, and feature tests. | [Features](./src/features/README.md) |
+| `src/hooks/` | Shared React hooks. | [Hooks](./src/hooks/README.md) |
+| `src/lib/` | API client, error handling, formatters, and utilities. | [Lib](./src/lib/README.md) |
+| `src/pages/` | Route-level screens and page composition. | [Pages](./src/pages/README.md) |
+| `src/test/` | Shared Vitest/RTL/MSW test setup. | [Test Setup](./src/test/README.md) |
+| `e2e/` | Playwright browser tests and API mocks. | [E2E Tests](./e2e/README.md) |
+
+### Important Entry Points
+
+- `src/main.tsx` — mounts the app and registers router, theme, query, and authentication providers.
+- `src/App.tsx` — defines routes, page-level code splitting, shared layout, and permission guards.
+- `src/index.css` — global styles and design tokens.
+- `vite.config.ts` — Vite plugins, `@/` alias, local server, and `/api` proxy.
+- `vitest.config.ts` / `playwright.config.ts` — unit/integration and browser test configuration.
+- `vercel.json` — production rewrites for frontend routes and `/api` requests; review the API destination before deploying to a different backend.
+
+## How It Works
+
+`src/App.tsx` loads pages on demand. Pages compose feature modules from `src/features/`, which use the shared Axios client in `src/lib/` and TanStack Query for fetching, caching, and mutations. The auth provider holds the access token in memory and restores sessions through the backend's refresh flow; protected routes and UI controls check the returned permissions. **The backend remains responsible for enforcing authorization.**

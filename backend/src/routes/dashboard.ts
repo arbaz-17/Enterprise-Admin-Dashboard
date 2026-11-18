@@ -57,33 +57,68 @@ async function getMetrics() {
   };
 }
 
+
 async function getMonthlyActivity() {
   const now = new Date();
+
+  // Last six calendar months, including current month.
   const start = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1),
   );
+
   const end = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
   );
 
-  const createdMonth = sql<string>`to_char(${projects.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM')`;
-  const completedMonth = sql<string>`to_char(${projects.completedAt} AT TIME ZONE 'UTC', 'YYYY-MM')`;
+  // startDate is a PostgreSQL DATE (YYYY-MM-DD).
+  const startDateFrom = start.toISOString().slice(0, 10);
+  const startDateUntil = end.toISOString().slice(0, 10);
 
-  const createdCounts = await db
-    .select({ month: createdMonth, count: sql<number>`count(*)::int` })
+  const startedMonth = sql<string>`
+    to_char(${projects.startDate}::timestamp, 'YYYY-MM')
+  `;
+
+  const completedMonth = sql<string>`
+    to_char(
+      ${projects.completedAt} AT TIME ZONE 'UTC',
+      'YYYY-MM'
+    )
+  `;
+
+  // Projects grouped by their start date.
+  const startedCounts = await db
+    .select({
+      month: startedMonth,
+      count: sql<number>`count(*)::int`,
+    })
     .from(projects)
-    .where(and(gte(projects.createdAt, start), lt(projects.createdAt, end)))
-    .groupBy(createdMonth);
+    .where(
+      and(
+        gte(projects.startDate, startDateFrom),
+        lt(projects.startDate, startDateUntil),
+      ),
+    )
+    .groupBy(startedMonth);
 
+  // Projects grouped by their completion timestamp.
   const completedCounts = await db
-    .select({ month: completedMonth, count: sql<number>`count(*)::int` })
+    .select({
+      month: completedMonth,
+      count: sql<number>`count(*)::int`,
+    })
     .from(projects)
-    .where(and(gte(projects.completedAt, start), lt(projects.completedAt, end)))
+    .where(
+      and(
+        gte(projects.completedAt, start),
+        lt(projects.completedAt, end),
+      ),
+    )
     .groupBy(completedMonth);
 
-  const createdByMonth = new Map(
-    createdCounts.map((item) => [item.month, item.count]),
+  const startedByMonth = new Map(
+    startedCounts.map((item) => [item.month, item.count]),
   );
+
   const completedByMonth = new Map(
     completedCounts.map((item) => [item.month, item.count]),
   );
@@ -92,6 +127,7 @@ async function getMonthlyActivity() {
     const date = new Date(
       Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + index, 1),
     );
+
     const yearMonth = utcMonthKey(date);
 
     return {
@@ -100,11 +136,12 @@ async function getMonthlyActivity() {
         month: "short",
         timeZone: "UTC",
       }).format(date),
-      created: createdByMonth.get(yearMonth) ?? 0,
+      started: startedByMonth.get(yearMonth) ?? 0,
       completed: completedByMonth.get(yearMonth) ?? 0,
     };
   });
 }
+
 
 async function getProjectStatus() {
   const statusCounts = await getStatusCounts();

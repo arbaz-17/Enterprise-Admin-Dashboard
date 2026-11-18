@@ -16,12 +16,14 @@ export interface DashboardMetrics {
   completedProjects: number;
 }
 
+
 export interface MonthlyActivityPoint {
   yearMonth: string;
   month: string;
-  created: number;
+  started: number;
   completed: number;
 }
+
 
 export interface ProjectStatusCount {
   status: ProjectStatus;
