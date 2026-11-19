@@ -15,10 +15,6 @@ import type { AuthResponse } from "@/features/auth/auth.types";
 import type { Employee, EmployeeListResponse } from "./employees.types";
 import type { DepartmentListResponse } from "@/features/departments/departments.types";
 
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
-
 const departmentId = "11111111-1111-4111-8111-111111111111";
 
 const sampleEmployee: Employee = {
@@ -97,10 +93,6 @@ const departmentList: DepartmentListResponse = {
   },
 };
 
-// -----------------------------------------
-// Real frontend test wrapper
-// -----------------------------------------
-
 function renderEmployees() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -133,10 +125,6 @@ function renderEmployees() {
   );
 }
 
-// -----------------------------------------
-// Default MSW handlers
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
@@ -164,10 +152,6 @@ beforeEach(() => {
 afterEach(() => {
   setAccessToken(null);
 });
-
-// -----------------------------------------
-// Tests
-// -----------------------------------------
 
 describe("Employees integration", () => {
   it("renders employee records returned by the API", async () => {

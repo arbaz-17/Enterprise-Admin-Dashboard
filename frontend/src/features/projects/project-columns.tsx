@@ -139,7 +139,6 @@ export function getProjectColumns({
     },
   ];
 
-  // Only render the actions column for authorized roles.
   if (canManage || canDelete) {
     columns.push({
       id: "actions",

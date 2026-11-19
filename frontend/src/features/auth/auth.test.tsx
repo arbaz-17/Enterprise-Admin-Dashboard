@@ -1,4 +1,3 @@
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -18,10 +17,6 @@ import type {
   Permission,
 } from "@/features/auth/auth.types";
 
-// -----------------------------------------
-// Test fixtures
-// -----------------------------------------
-
 const adminUser: AuthUser = {
   id: "test-admin",
   name: "Test Administrator",
@@ -36,10 +31,7 @@ const managerUser: AuthUser = {
   role: "manager",
 };
 
-function authResponse(
-  user: AuthUser,
-  permissions: Permission[],
-): AuthResponse {
+function authResponse(user: AuthUser, permissions: Permission[]): AuthResponse {
   return {
     accessToken: "test-access-token",
     tokenType: "Bearer",
@@ -49,16 +41,10 @@ function authResponse(
   };
 }
 
-// -----------------------------------------
-// Test router
-// -----------------------------------------
-
 function EmployeesTestPage() {
   const { pathname, search } = useLocation();
 
-  return (
-    <h1>Employees route: {pathname + search}</h1>
-  );
+  return <h1>Employees route: {pathname + search}</h1>;
 }
 
 function renderAuthRoutes(initialPath = "/login") {
@@ -74,28 +60,15 @@ function renderAuthRoutes(initialPath = "/login") {
       <MemoryRouter initialEntries={[initialPath]}>
         <AuthProvider>
           <Routes>
-            <Route
-              path="/login"
-              element={<LoginPage />}
-            />
+            <Route path="/login" element={<LoginPage />} />
 
             <Route element={<ProtectedRoute />}>
-              <Route
-                path="/"
-                element={<h1>Test Dashboard</h1>}
-              />
+              <Route path="/" element={<h1>Test Dashboard</h1>} />
 
               <Route
-                element={
-                  <ProtectedRoute
-                    requiredPermission="employees:read"
-                  />
-                }
+                element={<ProtectedRoute requiredPermission="employees:read" />}
               >
-                <Route
-                  path="/employees"
-                  element={<EmployeesTestPage />}
-                />
+                <Route path="/employees" element={<EmployeesTestPage />} />
               </Route>
             </Route>
           </Routes>
@@ -105,14 +78,9 @@ function renderAuthRoutes(initialPath = "/login") {
   );
 }
 
-// -----------------------------------------
-// Test setup
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
-  // Simulate an unauthenticated visitor.
   server.use(
     http.post("*/api/auth/refresh", () => {
       return HttpResponse.json(
@@ -132,10 +100,6 @@ afterEach(() => {
   setAccessToken(null);
 });
 
-// -----------------------------------------
-// Authentication tests
-// -----------------------------------------
-
 describe("Authentication", () => {
   it("validates email and password before submitting", async () => {
     const user = userEvent.setup();
@@ -146,17 +110,13 @@ describe("Authentication", () => {
       name: "Welcome back",
     });
 
-    await user.click(
-      screen.getByRole("button", { name: "Sign in" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(
       await screen.findByText("Enter a valid email address"),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText("Password is required"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Password is required")).toBeInTheDocument();
   });
 
   it("displays the API error for invalid credentials", async () => {
@@ -189,18 +149,13 @@ describe("Authentication", () => {
       "admin@example.test",
     );
 
-    await user.type(
-      screen.getByLabelText("Password"),
-      "IncorrectPassword123",
-    );
+    await user.type(screen.getByLabelText("Password"), "IncorrectPassword123");
 
-    await user.click(
-      screen.getByRole("button", { name: "Sign in" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(
-      await screen.findByRole("alert"),
-    ).toHaveTextContent("Invalid email or password");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Invalid email or password",
+    );
 
     expect(getAccessToken()).toBeNull();
   });
@@ -220,10 +175,8 @@ describe("Authentication", () => {
       }),
     );
 
-    // Attempt to visit a protected route.
     renderAuthRoutes("/employees?page=2");
 
-    // The route guard should send us to login.
     expect(
       await screen.findByRole("heading", {
         name: "Welcome back",
@@ -237,16 +190,10 @@ describe("Authentication", () => {
       "admin@example.test",
     );
 
-    await user.type(
-      screen.getByLabelText("Password"),
-      "ValidPassword123",
-    );
+    await user.type(screen.getByLabelText("Password"), "ValidPassword123");
 
-    await user.click(
-      screen.getByRole("button", { name: "Sign in" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    // Login should restore the original URL.
     expect(
       await screen.findByRole("heading", {
         name: "Employees route: /employees?page=2",
@@ -259,11 +206,7 @@ describe("Authentication", () => {
   it("shows a forbidden page when the session lacks the required permission", async () => {
     server.use(
       http.post("*/api/auth/refresh", () => {
-        return HttpResponse.json(
-          authResponse(managerUser, [
-            "dashboard:read",
-          ]),
-        );
+        return HttpResponse.json(authResponse(managerUser, ["dashboard:read"]));
       }),
     );
 
@@ -275,9 +218,7 @@ describe("Authentication", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText("403 — Forbidden"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("403 — Forbidden")).toBeInTheDocument();
 
     expect(
       screen.queryByRole("heading", {

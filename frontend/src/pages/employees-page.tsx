@@ -64,7 +64,7 @@ export function EmployeesPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Employee | null>(null);
 
-  // Shared URL-based table state
+
   const tableState = getTableUrlState({
     params,
     setParams,
@@ -81,16 +81,11 @@ export function EmployeesPage() {
   });
 
   const { page, pageSize, sortBy, sortDir, goToPage } = tableState;
-
   const q = (params.get("q") ?? "").trim().slice(0, 100);
-
   const statusParam = params.get("status");
-
   const status = EMPLOYEE_STATUSES.find((value) => value === statusParam);
-
   const departmentId = params.get("departmentId") || undefined;
-
-  // Queries and mutations
+  
   const { data, isPending, isError, isFetching, error, refetch } = useEmployees(
     {
       page,
@@ -114,7 +109,7 @@ export function EmployeesPage() {
 
   const total = data?.pagination.total ?? 0;
 
-  // Search and filters preserve sorting preferences.
+
   async function handleSave(input: EmployeeInput) {
     if (!canManage || !editor) {
       throw new Error("Not authorized to manage employees");
@@ -156,7 +151,7 @@ export function EmployeesPage() {
     }
   }
 
-  // Feature-specific columns
+
   const columns = useMemo(
     () =>
       getEmployeeColumns({

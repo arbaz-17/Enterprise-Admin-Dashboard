@@ -58,7 +58,7 @@ export function ClientsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Client | null>(null);
 
-  // Shared URL-based pagination and sorting
+  
   const tableState = getTableUrlState({
     params,
     setParams,
@@ -84,7 +84,7 @@ export function ClientsPage() {
       ? statusParam
       : undefined;
 
-  // API queries and mutations
+  
   const { data, isPending, isError, isFetching, error, refetch } = useClients({
     page,
     pageSize,
@@ -141,7 +141,7 @@ export function ClientsPage() {
     }
   }
 
-  // Feature-specific columns
+ 
   const columns = useMemo(
     () =>
       getClientColumns({

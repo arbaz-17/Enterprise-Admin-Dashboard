@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   afterEach,
@@ -34,10 +33,6 @@ import type {
   Client,
   ClientInput,
 } from "./clients.types";
-
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
 
 const acme: Client = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -87,10 +82,6 @@ function clientList(records: Client[]) {
   };
 }
 
-// -----------------------------------------
-// Render real Clients page
-// -----------------------------------------
-
 function renderClients() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -133,10 +124,6 @@ function renderClients() {
   );
 }
 
-// -----------------------------------------
-// Radix Select support for jsdom
-// -----------------------------------------
-
 beforeAll(() => {
   HTMLElement.prototype.scrollIntoView ??= () => {};
   HTMLElement.prototype.hasPointerCapture ??= () => false;
@@ -157,10 +144,6 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-// -----------------------------------------
-// Default MSW handlers
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
@@ -180,10 +163,6 @@ beforeEach(() => {
 afterEach(() => {
   setAccessToken(null);
 });
-
-// -----------------------------------------
-// Integration tests
-// -----------------------------------------
 
 describe("Clients integration", () => {
   it("filters clients by status through the API", async () => {
@@ -385,7 +364,6 @@ describe("Clients integration", () => {
       expect(createRequests).toBe(1);
     });
 
-    // Optional fields are normalized by the real form helper.
     expect(receivedPayload).toEqual({
       name: "Delta Systems",
       contactName: null,
@@ -393,7 +371,6 @@ describe("Clients integration", () => {
       status: "active",
     });
 
-    // Mutation must trigger a list refetch.
     await waitFor(() => {
       expect(listRequests).toBeGreaterThanOrEqual(2);
     });

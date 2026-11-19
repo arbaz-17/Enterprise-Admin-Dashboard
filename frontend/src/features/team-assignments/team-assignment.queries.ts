@@ -44,7 +44,7 @@ export function useAddTeamMember() {
   return useMutation({
     mutationFn: (input: AddTeamMemberInput) => teamAssignmentsApi.add(input),
     onSuccess: async (_data, variables) => {
-      // Sequential invalidation to avoid concurrent DB fetches with the small connection pool.
+  
       await queryClient.invalidateQueries({
         queryKey: teamKeys.detail(variables.projectId),
         exact: true,

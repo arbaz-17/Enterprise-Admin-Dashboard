@@ -8,7 +8,7 @@ interface DataTableHeaderProps<TData> {
   sticky: boolean;
 }
 
-/** Table header and sorting controls; independent of row virtualization. */
+
 export function DataTableHeader<TData>({
   table,
   sticky,

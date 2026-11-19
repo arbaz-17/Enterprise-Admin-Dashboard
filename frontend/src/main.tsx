@@ -33,12 +33,9 @@ const queryClient = new QueryClient({
           ? error.response?.status
           : undefined;
 
-        // Do not retry normal client/permission errors.
         if (status !== undefined && status < 500 && status !== 429) {
           return false;
         }
-
-        // Retry network/server errors once.
         return failureCount < 1;
       },
     },

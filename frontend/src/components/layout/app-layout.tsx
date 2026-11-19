@@ -6,8 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 
-// SidebarProvider saves desktop collapse state in a cookie.
-// Restore it so the preference survives reloads.
 function getSavedSidebarOpen(): boolean {
   if (typeof document === "undefined") return true;
 

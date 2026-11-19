@@ -3,21 +3,14 @@ import { dashboardApi } from "./dashboard-api";
 
 export const dashboardKeys = {
   all: ["dashboard"] as const,
-
   metrics: () => [...dashboardKeys.all, "metrics"] as const,
-
   monthlyActivity: () => [...dashboardKeys.all, "monthly-activity"] as const,
-
   projectStatus: () => [...dashboardKeys.all, "project-status"] as const,
-
   departments: () => [...dashboardKeys.all, "departments"] as const,
-
   recentProjects: () => [...dashboardKeys.all, "recent-projects"] as const,
-
   operations: () => [...dashboardKeys.all, "operations"] as const,
 };
 
-// Shared behavior for all independent dashboard queries.
 const dashboardQueryOptions = {
   staleTime: 30_000,
   refetchOnWindowFocus: true,

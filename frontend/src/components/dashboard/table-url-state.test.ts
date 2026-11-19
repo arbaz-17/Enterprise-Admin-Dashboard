@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { getTableUrlState } from "./table-url-state";
 
-// Representative keys used by the real list pages.
+
 const sortKeys = ["name", "status", "priority"] as const;
 const filterKeys = ["q", "status", "priority"] as const;
 
@@ -32,9 +32,6 @@ function setup(query = "") {
 }
 
 describe("Shared table URL state", () => {
-  // ---------------------------------------
-  // URL parsing
-  // ---------------------------------------
 
   it.each(["0", "-1", "1.5", "100001", "invalid"])(
     "falls back to page 1 for invalid page=%s",
@@ -74,9 +71,6 @@ describe("Shared table URL state", () => {
     ]);
   });
 
-  // ---------------------------------------
-  // Pagination
-  // ---------------------------------------
 
   it("changes pages while preserving active filters", () => {
     const { state, updatedParams } = setup(
@@ -106,10 +100,6 @@ describe("Shared table URL state", () => {
     expect(next.get("status")).toBe("active");
   });
 
-  // ---------------------------------------
-  // Page size
-  // ---------------------------------------
-
   it("resets pagination when page size changes", () => {
     const { state, updatedParams } = setup(
       "page=5&pageSize=20&q=dashboard",
@@ -134,16 +124,12 @@ describe("Shared table URL state", () => {
     expect(updates).toHaveLength(0);
   });
 
-  // ---------------------------------------
-  // Sorting
-  // ---------------------------------------
-
   it("updates sorting and resets pagination without removing filters", () => {
     const { state, updatedParams } = setup(
       "page=4&pageSize=20&q=portal&status=active",
     );
 
-    // Exercise the updater-function form.
+    
     state.onSortingChange(() => [
       { id: "priority", desc: true },
     ]);
@@ -174,10 +160,6 @@ describe("Shared table URL state", () => {
     expect(next.has("sortDir")).toBe(false);
     expect(next.has("page")).toBe(false);
   });
-
-  // ---------------------------------------
-  // Filters
-  // ---------------------------------------
 
   it("updates a filter and resets pagination", () => {
     const { state, updatedParams } = setup(
@@ -223,8 +205,6 @@ describe("Shared table URL state", () => {
     expect(next.has("status")).toBe(false);
     expect(next.has("priority")).toBe(false);
     expect(next.has("page")).toBe(false);
-
-    // Non-filter settings remain unchanged.
     expect(next.get("pageSize")).toBe("50");
     expect(next.get("sortBy")).toBe("name");
     expect(next.get("sortDir")).toBe("desc");

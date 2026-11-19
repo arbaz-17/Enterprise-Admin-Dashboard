@@ -35,25 +35,19 @@ import type { ProjectTeamMember } from "@/features/team-assignments/team-assignm
 
 export function ProjectTeamPage() {
   const { projectId = "" } = useParams<{ projectId: string }>();
-
   const { hasPermission } = useAuth();
-
   const [addOpen, setAddOpen] = useState(false);
-
   const [removing, setRemoving] = useState<ProjectTeamMember | null>(null);
 
-  // API query and mutations
   const { data, isPending, isError, isFetching, error, refetch } =
     useProjectTeam(projectId);
 
   const add = useAddTeamMember();
   const remove = useRemoveTeamMember();
 
-  // Authorization combines user and project permissions
   const canManage =
     hasPermission("assignments:manage") && Boolean(data?.project.canManageTeam);
 
-  // Project-team-specific column configuration
   const columns = useMemo(
     () =>
       getTeamMemberColumns({

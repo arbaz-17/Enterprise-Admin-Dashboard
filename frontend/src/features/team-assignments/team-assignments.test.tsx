@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   afterEach,
@@ -9,17 +8,9 @@ import {
   it,
   vi,
 } from "vitest";
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { http, HttpResponse } from "msw";
 
@@ -36,12 +27,7 @@ import type {
   TeamResponse,
 } from "./team-assignments.types";
 
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
-
-const projectId =
-  "11111111-1111-4111-8111-111111111111";
+const projectId = "11111111-1111-4111-8111-111111111111";
 
 const existingMember: ProjectTeamMember = {
   id: "22222222-2222-4222-8222-222222222222",
@@ -72,11 +58,7 @@ const adminSession: AuthResponse = {
     email: "admin@example.test",
     role: "admin",
   },
-  permissions: [
-    "dashboard:read",
-    "projects:read",
-    "assignments:manage",
-  ],
+  permissions: ["dashboard:read", "projects:read", "assignments:manage"],
 };
 
 const managerSession: AuthResponse = {
@@ -105,10 +87,6 @@ function teamResponse(
   };
 }
 
-// -----------------------------------------
-// Real page wrapper
-// -----------------------------------------
-
 function renderTeam() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -124,24 +102,13 @@ function renderTeam() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter
-        initialEntries={[
-          `/projects/${projectId}/team`,
-        ]}
-      >
+      <MemoryRouter initialEntries={[`/projects/${projectId}/team`]}>
         <AuthProvider>
           <Routes>
-            <Route
-              path="/login"
-              element={<h1>Login screen</h1>}
-            />
+            <Route path="/login" element={<h1>Login screen</h1>} />
 
             <Route
-              element={
-                <ProtectedRoute
-                  requiredPermission="projects:read"
-                />
-              }
+              element={<ProtectedRoute requiredPermission="projects:read" />}
             >
               <Route
                 path="/projects/:projectId/team"
@@ -154,10 +121,6 @@ function renderTeam() {
     </QueryClientProvider>,
   );
 }
-
-// -----------------------------------------
-// Radix Select browser support
-// -----------------------------------------
 
 beforeAll(() => {
   HTMLElement.prototype.scrollIntoView ??= () => {};
@@ -179,10 +142,6 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-// -----------------------------------------
-// Default handlers
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
@@ -191,33 +150,21 @@ beforeEach(() => {
       return HttpResponse.json(adminSession);
     }),
 
-    http.get(
-      "*/api/projects/:projectId/assignments",
-      () => {
-        return HttpResponse.json(
-          teamResponse([existingMember]),
-        );
-      },
-    ),
+    http.get("*/api/projects/:projectId/assignments", () => {
+      return HttpResponse.json(teamResponse([existingMember]));
+    }),
 
-    http.get(
-      "*/api/projects/:projectId/assignments/options",
-      () => {
-        return HttpResponse.json({
-          data: [availableEmployee],
-        });
-      },
-    ),
+    http.get("*/api/projects/:projectId/assignments/options", () => {
+      return HttpResponse.json({
+        data: [availableEmployee],
+      });
+    }),
   );
 });
 
 afterEach(() => {
   setAccessToken(null);
 });
-
-// -----------------------------------------
-// Integration tests
-// -----------------------------------------
 
 describe("Project Team Assignments", () => {
   it("prevents a manager from modifying an unassigned project team", async () => {
@@ -226,21 +173,14 @@ describe("Project Team Assignments", () => {
         return HttpResponse.json(managerSession);
       }),
 
-      http.get(
-        "*/api/projects/:projectId/assignments",
-        () => {
-          return HttpResponse.json(
-            teamResponse([existingMember], false),
-          );
-        },
-      ),
+      http.get("*/api/projects/:projectId/assignments", () => {
+        return HttpResponse.json(teamResponse([existingMember], false));
+      }),
     );
 
     renderTeam();
 
-    expect(
-      await screen.findByText("Aisha Khan"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Aisha Khan")).toBeInTheDocument();
 
     expect(
       screen.getByRole("heading", {
@@ -248,8 +188,6 @@ describe("Project Team Assignments", () => {
       }),
     ).toBeInTheDocument();
 
-    // Manager has assignments:manage, but
-    // this project explicitly denies team management.
     expect(
       screen.queryByRole("button", {
         name: "Add member",
@@ -262,7 +200,6 @@ describe("Project Team Assignments", () => {
       }),
     ).not.toBeInTheDocument();
 
-    // Read access remains available.
     expect(
       screen.getByRole("table", {
         name: "Project team members",
@@ -273,39 +210,28 @@ describe("Project Team Assignments", () => {
   it("adds an eligible employee and refreshes the project team", async () => {
     const user = userEvent.setup();
 
-    let members: ProjectTeamMember[] = [
-      existingMember,
-    ];
+    let members: ProjectTeamMember[] = [existingMember];
 
     let listRequests = 0;
     let addRequests = 0;
     let receivedEmployeeId: string | null = null;
 
     server.use(
-      http.get(
-        "*/api/projects/:projectId/assignments",
-        () => {
-          listRequests += 1;
+      http.get("*/api/projects/:projectId/assignments", () => {
+        listRequests += 1;
 
-          return HttpResponse.json(
-            teamResponse(members),
-          );
-        },
-      ),
+        return HttpResponse.json(teamResponse(members));
+      }),
 
-      http.get(
-        "*/api/projects/:projectId/assignments/options",
-        () => {
-          return HttpResponse.json({
-            data: members.some(
-              (member) =>
-                member.employeeId === availableEmployee.id,
-            )
-              ? []
-              : [availableEmployee],
-          });
-        },
-      ),
+      http.get("*/api/projects/:projectId/assignments/options", () => {
+        return HttpResponse.json({
+          data: members.some(
+            (member) => member.employeeId === availableEmployee.id,
+          )
+            ? []
+            : [availableEmployee],
+        });
+      }),
 
       http.post(
         "*/api/projects/:projectId/assignments",
@@ -346,28 +272,21 @@ describe("Project Team Assignments", () => {
 
     renderTeam();
 
-    // Initial team data.
-    expect(
-      await screen.findByText("Aisha Khan"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Aisha Khan")).toBeInTheDocument();
 
-    // Open real Add Member dialog.
     await user.click(
       screen.getByRole("button", {
         name: "Add member",
       }),
     );
 
-    const dialog = await screen.findByRole(
-      "dialog",
-      { name: "Add team member" },
-    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "Add team member",
+    });
 
-    // Wait for the eligible employees API.
-    const employeeSelect =
-      within(dialog).getByRole("combobox", {
-        name: "Employee",
-      });
+    const employeeSelect = within(dialog).getByRole("combobox", {
+      name: "Employee",
+    });
 
     await waitFor(() => {
       expect(employeeSelect).toBeEnabled();
@@ -375,14 +294,12 @@ describe("Project Team Assignments", () => {
 
     await user.click(employeeSelect);
 
-    // API supplies only eligible employees.
     await user.click(
       await screen.findByRole("option", {
         name: "Nadia Ali — Engineering",
       }),
     );
 
-    // Submit through the real dialog.
     await user.click(
       within(dialog).getByRole("button", {
         name: "Add member",
@@ -393,28 +310,18 @@ describe("Project Team Assignments", () => {
       expect(addRequests).toBe(1);
     });
 
-    // Confirm correct API payload.
-    expect(receivedEmployeeId).toBe(
-      availableEmployee.id,
-    );
+    expect(receivedEmployeeId).toBe(availableEmployee.id);
 
-    // Query invalidation must trigger a refetch.
     await waitFor(() => {
       expect(listRequests).toBeGreaterThanOrEqual(2);
     });
 
-    // New employee appears in the actual table.
-    expect(
-      await screen.findByText("Nadia Ali"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Nadia Ali")).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        "2 employees assigned to this project",
-      ),
+      screen.getByText("2 employees assigned to this project"),
     ).toBeInTheDocument();
 
-    // Dialog closes after successful assignment.
     await waitFor(() => {
       expect(
         screen.queryByRole("dialog", {
@@ -427,35 +334,25 @@ describe("Project Team Assignments", () => {
   it("requires confirmation before removing a team member", async () => {
     const user = userEvent.setup();
 
-    let members: ProjectTeamMember[] = [
-      existingMember,
-    ];
+    let members: ProjectTeamMember[] = [existingMember];
 
     let deleteRequests = 0;
     let removedEmployeeId: string | null = null;
 
     server.use(
-      http.get(
-        "*/api/projects/:projectId/assignments",
-        () => {
-          return HttpResponse.json(
-            teamResponse(members),
-          );
-        },
-      ),
+      http.get("*/api/projects/:projectId/assignments", () => {
+        return HttpResponse.json(teamResponse(members));
+      }),
 
       http.delete(
         "*/api/projects/:projectId/assignments/:employeeId",
         ({ params }) => {
           deleteRequests += 1;
 
-          removedEmployeeId = String(
-            params.employeeId,
-          );
+          removedEmployeeId = String(params.employeeId);
 
           members = members.filter(
-            (member) =>
-              member.employeeId !== removedEmployeeId,
+            (member) => member.employeeId !== removedEmployeeId,
           );
 
           return new HttpResponse(null, {
@@ -467,20 +364,16 @@ describe("Project Team Assignments", () => {
 
     renderTeam();
 
-    expect(
-      await screen.findByText("Aisha Khan"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Aisha Khan")).toBeInTheDocument();
 
     const removeButton = () =>
       screen.getByRole("button", {
         name: "Remove Aisha Khan from project",
       });
 
-    // First attempt: cancel.
     await user.click(removeButton());
 
-    const confirmation =
-      await screen.findByRole("alertdialog");
+    const confirmation = await screen.findByRole("alertdialog");
 
     expect(
       within(confirmation).getByText(
@@ -497,41 +390,27 @@ describe("Project Team Assignments", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole("alertdialog"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
     expect(deleteRequests).toBe(0);
 
-    // Second attempt: confirm removal.
     await user.click(removeButton());
 
-    const secondConfirmation =
-      await screen.findByRole("alertdialog");
+    const secondConfirmation = await screen.findByRole("alertdialog");
 
     await user.click(
-      within(secondConfirmation).getByRole(
-        "button",
-        { name: "Remove member" },
-      ),
+      within(secondConfirmation).getByRole("button", { name: "Remove member" }),
     );
 
     await waitFor(() => {
       expect(deleteRequests).toBe(1);
     });
 
-    expect(removedEmployeeId).toBe(
-      existingMember.employeeId,
-    );
+    expect(removedEmployeeId).toBe(existingMember.employeeId);
 
-    // Refreshed UI shows the empty team state.
-    expect(
-      await screen.findByText("No team members yet"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No team members yet")).toBeInTheDocument();
 
-    expect(
-      screen.queryByText("Aisha Khan"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Aisha Khan")).not.toBeInTheDocument();
   });
 });

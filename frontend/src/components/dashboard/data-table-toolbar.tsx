@@ -27,7 +27,6 @@ interface DataTableToolbarProps {
 }
 
 interface SearchDraft {
-  // Tracks the committed search that this draft was based on.
   source: string;
   value: string;
 }
@@ -50,8 +49,6 @@ export function DataTableToolbar({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSearchRef = useRef(onSearch);
 
-  // Page callbacks close over URL parameters or filters, which may change
-  // while a debounce timer is pending. Always invoke the newest callback.
   useEffect(() => {
     onSearchRef.current = onSearch;
   }, [onSearch]);
@@ -63,17 +60,11 @@ export function DataTableToolbar({
     }
   }, []);
 
-  // External changes (e.g. browser Back/Forward) supersede a pending draft.
   useEffect(() => {
     cancelPendingSearch();
   }, [searchValue, cancelPendingSearch]);
 
-  // Never apply a delayed search after this toolbar has unmounted.
   useEffect(() => cancelPendingSearch, [cancelPendingSearch]);
-
-  // Keep the draft in sync when URL navigation changes the committed value.
-  // The guarded render-time adjustment also handles Back/Forward cycles
-  // (e.g. "alpha" -> "beta" -> "alpha") without remounting the input.
   if (draft.source !== searchValue) {
     setDraft({ source: searchValue, value: searchValue });
   }
@@ -98,7 +89,6 @@ export function DataTableToolbar({
 
     if (normalized === searchValue) return;
 
-    // Clearing the field (including its native X button) is immediate.
     if (normalized === "") {
       onSearchRef.current("");
       return;

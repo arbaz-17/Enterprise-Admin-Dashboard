@@ -60,24 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [establishSession, clearSession]);
 
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      const response = await authApi.login(credentials);
 
-const login = useCallback(
-  async (credentials: LoginCredentials) => {
-    // One request returns the token, user and permissions.
-    const response = await authApi.login(credentials);
+      setAccessToken(response.accessToken);
 
-    // Keep the access token in memory.
-    setAccessToken(response.accessToken);
-
-    // Establish the session without calling /auth/me.
-    establishSession(response);
-  },
-  [establishSession],
-);
-
+      establishSession(response);
+    },
+    [establishSession],
+  );
 
   const logout = useCallback(async () => {
-    // Only clear the local session after backend confirmation.
     await authApi.logout();
 
     clearSession("unauthenticated");
@@ -86,7 +80,6 @@ const login = useCallback(
   useEffect(() => {
     let active = true;
 
-    // Refresh expired access tokens and retry once.
     const interceptorId = apiClient.interceptors.response.use(
       (response) => response,
       async (error: unknown) => {
@@ -108,7 +101,6 @@ const login = useCallback(
 
         const currentToken = getAccessToken();
 
-        // A request already retried once must not retry again.
         if (request._retry) {
           if (active && requestToken && requestToken === currentToken) {
             clearSession("unauthenticated");
@@ -117,14 +109,12 @@ const login = useCallback(
           return Promise.reject(error);
         }
 
-        // Do not attempt refresh without a prior access token.
         if (!currentToken) {
           return Promise.reject(error);
         }
 
         request._retry = true;
 
-        // Another request may have already refreshed the token.
         if (requestToken !== currentToken) {
           request.headers.set("Authorization", `Bearer ${currentToken}`);
 
@@ -152,7 +142,6 @@ const login = useCallback(
       },
     );
 
-    // Restore the session when the provider mounts.
     void restoreSession()
       .then((data) => {
         if (active) {

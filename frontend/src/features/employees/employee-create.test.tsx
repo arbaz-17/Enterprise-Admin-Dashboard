@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   afterEach,
@@ -35,10 +34,6 @@ import type {
   EmployeeInput,
 } from "@/features/employees/employees.types";
 
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
-
 const departmentId =
   "11111111-1111-4111-8111-111111111111";
 
@@ -74,10 +69,6 @@ const adminSession: AuthResponse = {
     "departments:read",
   ],
 };
-
-// -----------------------------------------
-// Test rendering
-// -----------------------------------------
 
 function renderEmployees() {
   const queryClient = new QueryClient({
@@ -119,10 +110,6 @@ function renderEmployees() {
     </QueryClientProvider>,
   );
 }
-
-// -----------------------------------------
-// jsdom support for Radix Select
-// -----------------------------------------
 
 beforeAll(() => {
   HTMLElement.prototype.scrollIntoView ??= () => {};
@@ -183,10 +170,6 @@ afterEach(() => {
   setAccessToken(null);
 });
 
-// -----------------------------------------
-// Employee creation integration test
-// -----------------------------------------
-
 describe("Employee creation integration", () => {
   it("creates an employee and refreshes the table", async () => {
     const user = userEvent.setup();
@@ -240,7 +223,6 @@ describe("Employee creation integration", () => {
 
     renderEmployees();
 
-    // 1. Verify initial API data.
     expect(
       await screen.findByText(originalEmployee.fullName),
     ).toBeInTheDocument();
@@ -249,7 +231,6 @@ describe("Employee creation integration", () => {
       screen.getByText("1 employee found"),
     ).toBeInTheDocument();
 
-    // 2. Open actual employee form.
     await user.click(
       screen.getByRole("button", {
         name: "Add employee",
@@ -260,7 +241,6 @@ describe("Employee creation integration", () => {
       name: "Add employee",
     });
 
-    // 3. Complete required fields.
     await user.type(
       within(dialog).getByLabelText("Full name *"),
       "Nadia Ali",
@@ -276,7 +256,6 @@ describe("Employee creation integration", () => {
       "Frontend Developer",
     );
 
-    // 4. Select department through the real UI.
     const departmentTrigger =
       within(dialog).getByRole("combobox", {
         name: /Department/,
@@ -294,14 +273,12 @@ describe("Employee creation integration", () => {
       }),
     );
 
-    // 5. Submit the form.
     await user.click(
       within(dialog).getByRole("button", {
         name: "Create employee",
       }),
     );
 
-    // 6. Confirm the expected API payload.
     await waitFor(() => {
       expect(createRequests).toBe(1);
     });
@@ -316,12 +293,10 @@ describe("Employee creation integration", () => {
       joiningDate: null,
     });
 
-    // 7. Verify query invalidation triggered a refetch.
     await waitFor(() => {
       expect(listRequests).toBeGreaterThanOrEqual(2);
     });
 
-    // 8. Verify the updated table displays new data.
     const table = await screen.findByRole("table", {
       name: "Employees",
     });
@@ -338,7 +313,6 @@ describe("Employee creation integration", () => {
       screen.getByText("2 employees found"),
     ).toBeInTheDocument();
 
-    // 9. Successful creation should close the dialog.
     await waitFor(() => {
       expect(
         screen.queryByRole("dialog", {

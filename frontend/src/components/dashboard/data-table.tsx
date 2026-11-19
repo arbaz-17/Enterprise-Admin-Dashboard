@@ -20,10 +20,6 @@ import { DataTableColumnVisibility } from "./data-table-column-visibility";
 import { DataTableHeader } from "./data-table-header";
 import { DataTablePagination } from "./data-table-pagination";
 
-// -------------------------------------------------------
-// Types
-// -------------------------------------------------------
-
 interface BaseProps<TData> {
   columns: ColumnDef<TData>[];
   data: TData[];
@@ -59,33 +55,14 @@ interface ClientTableProps {
 type DataTableProps<TData> = BaseProps<TData> &
   (ServerPaginationProps | ClientTableProps);
 
-// -------------------------------------------------------
-// Virtualization configuration
-// -------------------------------------------------------
-
-// Small tables continue using normal rendering.
 const VIRTUALIZATION_THRESHOLD = 50;
-
-// Estimated row height in pixels.
-// Actual row heights are measured after rendering.
 const ESTIMATED_ROW_HEIGHT = 72;
-
-// Additional rows rendered outside the visible viewport.
 const VIRTUAL_OVERSCAN = 5;
-
-// Matches the `max-h-[32rem]` scroll container (32rem = 512px).
-// Used so the very first render already has a viewport size and
-// produces visible rows, before the real size is measured.
 const INITIAL_VIEWPORT_HEIGHT = 512;
-
-// -------------------------------------------------------
-// Virtual row renderer
-// -------------------------------------------------------
 
 interface VirtualRowsProps<TData> {
   rows: Row<TData>[];
   columnCount: number;
-  // The scroll container element, or null until it has mounted.
   scrollElement: HTMLDivElement | null;
 }
 
@@ -94,7 +71,6 @@ function VirtualRows<TData>({
   columnCount,
   scrollElement,
 }: VirtualRowsProps<TData>) {
-  // Stable keys help preserve row identity.
   const getItemKey = useCallback(
     (index: number) => rows[index]?.id ?? index,
     [rows],
@@ -102,42 +78,27 @@ function VirtualRows<TData>({
 
   const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
-
-    // This is the element that owns the scrollbar.
-    // It comes from state, so when the element mounts the parent
-    // re-renders and the virtualizer re-attaches to it.
     getScrollElement: () => scrollElement,
 
-    // Initial size until actual row height is measured.
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
-
-    // Render extra rows to avoid blank areas during scrolling.
     overscan: VIRTUAL_OVERSCAN,
-
-    // Viewport size used before the scroll element is measured.
     initialRect: { width: 0, height: INITIAL_VIEWPORT_HEIGHT },
 
     getItemKey,
   });
 
-  // Only the rows currently needed for rendering.
   const virtualRows = rowVirtualizer.getVirtualItems();
-
   const firstVirtualRow = virtualRows[0];
-
   const lastVirtualRow = virtualRows[virtualRows.length - 1];
 
-  // Empty space representing rows above the rendered range.
   const paddingTop = firstVirtualRow?.start ?? 0;
 
-  // Empty space representing rows below the rendered range.
   const paddingBottom = lastVirtualRow
     ? Math.max(0, rowVirtualizer.getTotalSize() - lastVirtualRow.end)
     : 0;
 
   return (
     <>
-      {/* Spacer representing rows above the viewport */}
       {paddingTop > 0 && (
         <TableRow aria-hidden="true" className="border-0 hover:bg-transparent">
           <TableCell
@@ -148,7 +109,6 @@ function VirtualRows<TData>({
         </TableRow>
       )}
 
-      {/* Only render rows in the virtual range */}
       {virtualRows.map((virtualRow) => {
         const row = rows[virtualRow.index];
 
@@ -181,10 +141,6 @@ function VirtualRows<TData>({
   );
 }
 
-// -------------------------------------------------------
-// Main reusable DataTable
-// -------------------------------------------------------
-
 export function DataTable<TData>(props: DataTableProps<TData>) {
   const {
     columns,
@@ -199,14 +155,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
   } = props;
 
   const isServerTable = props.page !== undefined;
-
-  // The DOM element TanStack Virtual observes for scrolling.
-  //
-  // This is deliberately state (via a callback ref) rather than useRef.
-  // With a plain ref, the child virtualizer's layout effect runs BEFORE
-  // the parent's ref is attached, so getScrollElement() returns null on
-  // first mount and nothing triggers a re-render afterwards. Using state
-  // causes a re-render once the element exists.
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null,
   );
@@ -214,11 +162,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const [localSorting, setLocalSorting] = useState<SortingState>([]);
-
-  // -----------------------------------------------------
-  // Pagination and sorting
-  // -----------------------------------------------------
-
   const pagination = {
     pageIndex: isServerTable ? props.page - 1 : 0,
     pageSize: isServerTable ? props.pageSize : Math.max(data.length, 1),
@@ -233,9 +176,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
 
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-
-    // Server tables receive already-sorted and
-    // already-paginated data.
     manualSorting: isServerTable,
     manualPagination: isServerTable,
 
@@ -273,15 +213,8 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     },
   });
 
-  // The current rows from TanStack Table.
-  // These are already sorted where applicable.
   const rows = table.getRowModel().rows;
-
   const visibleColumns = table.getVisibleLeafColumns();
-
-  // -----------------------------------------------------
-  // Enable virtualization only when useful
-  // -----------------------------------------------------
 
   const enableVirtualRows =
     virtualize && !isLoading && rows.length >= VIRTUALIZATION_THRESHOLD;
@@ -290,9 +223,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
 
   const sortId = sorting[0]?.id ?? "";
   const sortDesc = sorting[0]?.desc ?? false;
-
-  // Reset scroll when page, page size, sorting,
-  // or the fetched dataset changes.
   useEffect(() => {
     if (enableVirtualRows && scrollElement) {
       scrollElement.scrollTop = 0;
@@ -306,10 +236,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     sortId,
     sortDesc,
   ]);
-
-  // -----------------------------------------------------
-  // Render
-  // -----------------------------------------------------
 
   return (
     <div className="space-y-4" aria-busy={isFetching || isLoading}>
@@ -370,7 +296,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
             {/* Table body */}
             <TableBody>
               {isLoading ? (
-                // Loading skeletons remain unchanged.
                 Array.from({ length: 5 }).map((_, rowIndex) => (
                   <TableRow key={`skeleton-${rowIndex}`}>
                     {visibleColumns.map((column) => (
@@ -382,14 +307,12 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                 ))
               ) : rows.length > 0 ? (
                 enableVirtualRows ? (
-                  // Virtualized rendering for large pages.
                   <VirtualRows
                     rows={rows}
                     columnCount={visibleColumns.length}
                     scrollElement={scrollElement}
                   />
                 ) : (
-                  // Standard rendering for small pages.
                   rows.map((row) => (
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
@@ -404,7 +327,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                   ))
                 )
               ) : (
-                // Empty state.
                 <TableRow>
                   <TableCell
                     colSpan={Math.max(visibleColumns.length, 1)}

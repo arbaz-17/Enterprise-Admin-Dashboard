@@ -35,7 +35,7 @@ export const employeesApi = {
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/employees/${encodeURIComponent(id)}`);
   },
-  // Dedicated endpoint avoids the existing /users route's 20-record limit.
+
   async accountOptions(signal?: AbortSignal): Promise<AccountOption[]> {
     const { data } = await apiClient.get<{ data: AccountOption[] }>(
       "/employees/account-options",

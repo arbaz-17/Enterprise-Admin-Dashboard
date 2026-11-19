@@ -60,14 +60,10 @@ const AuditsPage = lazy(() =>
   })),
 );
 
-// --------------------------------------------------
-// 2. Application routes
-// --------------------------------------------------
-
 export default function App() {
   return (
     <Routes>
-      {/* Public login route */}
+     
       <Route
         path="/login"
         element={
@@ -83,15 +79,11 @@ export default function App() {
         }
       />
 
-      {/* Authentication guard */}
+     
       <Route element={<ProtectedRoute />}>
-        {/* Keep the existing dashboard layout */}
+        
         <Route element={<AppLayout />}>
-          {/*
-            Shared Suspense boundary for protected pages.
-            The sidebar and header remain mounted while
-            an individual route's JavaScript is loading.
-          */}
+  
           <Route
             element={
               <Suspense fallback={<LoadingState message="Loading page..." />}>
@@ -99,35 +91,34 @@ export default function App() {
               </Suspense>
             }
           >
-            {/* Dashboard */}
+            
             <Route
               element={<ProtectedRoute requiredPermission="dashboard:read" />}
             >
               <Route index element={<DashboardPage />} />
             </Route>
 
-            {/* Departments */}
+            
             <Route
               element={<ProtectedRoute requiredPermission="departments:read" />}
             >
               <Route path="departments" element={<DepartmentsPage />} />
             </Route>
 
-            {/* Employees */}
+            
             <Route
               element={<ProtectedRoute requiredPermission="employees:read" />}
             >
               <Route path="employees" element={<EmployeesPage />} />
             </Route>
 
-            {/* Clients */}
             <Route
               element={<ProtectedRoute requiredPermission="clients:read" />}
             >
               <Route path="clients" element={<ClientsPage />} />
             </Route>
 
-            {/* Projects & project teams */}
+          
             <Route
               element={<ProtectedRoute requiredPermission="projects:read" />}
             >
@@ -138,14 +129,13 @@ export default function App() {
               />
             </Route>
 
-            {/* User management */}
+
             <Route
               element={<ProtectedRoute requiredPermission="users:manage" />}
             >
               <Route path="users" element={<UsersPage />} />
             </Route>
 
-            {/* Audit Logs */}
             <Route
               element={<ProtectedRoute requiredPermission="audits:read" />}
             >
@@ -155,7 +145,6 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* Unknown routes */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

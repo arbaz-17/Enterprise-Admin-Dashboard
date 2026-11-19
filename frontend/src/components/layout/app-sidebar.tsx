@@ -57,12 +57,12 @@ export function AppSidebar() {
     setIsLoggingOut(true);
     try {
       await logout();
-      // Keep the existing session behavior; only the action's location changed.
+
       if (isMobile) setOpenMobile(false);
       toast.success("Signed out successfully");
       navigate("/login", { replace: true });
     } catch (error) {
-      // Remain signed in on failure, so the user can retry from the sidebar.
+
       toast.error("Sign out failed", {
         description: getApiErrorMessage(error),
       });

@@ -71,7 +71,6 @@ export function getTableUrlState<TSort extends string, TFilter extends string = 
       next.set("pageSize", String(size));
     }
 
-    // Changing page size resets pagination.
     next.delete("page");
     setParams(next);
   }
@@ -105,13 +104,11 @@ export function getTableUrlState<TSort extends string, TFilter extends string = 
       next.set("sortDir", nextDirection);
     }
 
-    // A new sort always starts at page one.
+  
     next.delete("page");
     setParams(next);
   };
 
-  // Every list page uses the same URL filter semantics:
-  // preserve sort/page-size, and return to page one when filters change.
   function setFilter(key: TFilter, value: string) {
     const next = new URLSearchParams(params);
 

@@ -1,4 +1,3 @@
-
 import {
   afterEach,
   beforeEach,
@@ -36,10 +35,6 @@ import type {
   ProjectListResponse,
   ProjectStatusInput,
 } from "./projects.types";
-
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
 
 const assignedProject: Project = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -122,10 +117,6 @@ function projectList(
   };
 }
 
-// -----------------------------------------
-// Real page wrapper
-// -----------------------------------------
-
 function renderProjects(initialPath = "/projects") {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -168,10 +159,6 @@ function renderProjects(initialPath = "/projects") {
   );
 }
 
-// -----------------------------------------
-// Default handlers
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
@@ -194,10 +181,6 @@ beforeEach(() => {
 afterEach(() => {
   setAccessToken(null);
 });
-
-// -----------------------------------------
-// Tests
-// -----------------------------------------
 
 describe("Projects integration", () => {
   it("searches projects while preserving filters and resetting pagination", async () => {
@@ -245,7 +228,6 @@ describe("Projects integration", () => {
       await screen.findByText("Portal Upgrade"),
     ).toBeInTheDocument();
 
-    // Initial URL filters must reach the API.
     expect(
       requests.some(
         (request) =>
@@ -274,8 +256,6 @@ describe("Projects integration", () => {
       await screen.findByText("1 project found"),
     ).toBeInTheDocument();
 
-    // After searching, page must reset to 1,
-    // while status and priority remain intact.
     await waitFor(() => {
       expect(
         requests.some(
@@ -318,28 +298,24 @@ describe("Projects integration", () => {
       screen.getByText("Manage assigned projects"),
     ).toBeInTheDocument();
 
-    // Manager cannot create projects.
     expect(
       screen.queryByRole("button", {
         name: "Add project",
       }),
     ).not.toBeInTheDocument();
 
-    // Assigned project is editable.
     expect(
       screen.getByRole("button", {
         name: "Edit Portal Upgrade",
       }),
     ).toBeInTheDocument();
 
-    // Unassigned project is not editable.
     expect(
       screen.queryByRole("button", {
         name: "Edit CRM Migration",
       }),
     ).not.toBeInTheDocument();
 
-    // Managers cannot delete projects.
     expect(
       screen.queryByRole("button", {
         name: /Delete Portal Upgrade|Delete CRM Migration/,
@@ -410,7 +386,6 @@ describe("Projects integration", () => {
       await screen.findByText("Portal Upgrade"),
     ).toBeInTheDocument();
 
-    // Open the real manager progress dialog.
     await user.click(
       screen.getByRole("button", {
         name: "Edit Portal Upgrade",
@@ -427,7 +402,6 @@ describe("Projects integration", () => {
       ),
     ).toBeInTheDocument();
 
-    // Update only progress.
     const progressInput =
       within(dialog).getByRole("spinbutton", {
         name: "Progress (%)",
@@ -442,23 +416,19 @@ describe("Projects integration", () => {
       }),
     );
 
-    // Confirm the PATCH request was made.
     await waitFor(() => {
       expect(patchRequests).toBe(1);
     });
 
-    // Only manager-allowed fields should be sent.
     expect(receivedPayload).toEqual({
       status: "active",
       progress: 65,
     });
 
-    // Confirm React Query refetched the list.
     await waitFor(() => {
       expect(listRequests).toBeGreaterThanOrEqual(2);
     });
 
-    // Confirm the updated value appears in the table.
     const table = await screen.findByRole("table", {
       name: "Projects",
     });
@@ -467,7 +437,6 @@ describe("Projects integration", () => {
       await within(table).findByText("65%"),
     ).toBeInTheDocument();
 
-    // Successful save closes the dialog.
     await waitFor(() => {
       expect(
         screen.queryByRole("dialog", {

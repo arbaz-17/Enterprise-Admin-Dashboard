@@ -60,7 +60,7 @@ export function UserDirectoryTable({
 
         <TableBody>
           {isPending
-            ? // Skeleton rows during initial loading.
+            ? 
               Array.from({ length: 5 }, (_, rowIndex) => (
                 <TableRow key={`skeleton-${rowIndex}`}>
                   {Array.from({ length: 4 }, (_, columnIndex) => (
@@ -75,7 +75,7 @@ export function UserDirectoryTable({
                   ))}
                 </TableRow>
               ))
-            : // Actual user rows once data is available.
+            : 
               users?.map((account) => {
                 const isSelf = account.id === currentUserId;
 

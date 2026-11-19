@@ -71,7 +71,6 @@ export function ProjectsPage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [deleting, setDeleting] = useState<Project | null>(null);
 
-  // Shared URL-based pagination and sorting
   const tableState = getTableUrlState({
     params,
     setParams,
@@ -100,7 +99,6 @@ export function ProjectsPage() {
     (value) => value === params.get("priority"),
   );
 
-  // Server-side data
   const { data, isPending, isError, isFetching, error, refetch } = useProjects({
     page,
     pageSize,
@@ -117,7 +115,7 @@ export function ProjectsPage() {
 
   const total = data?.pagination.total ?? 0;
 
-  // Admin: Full project CRUD
+
   async function handleAdminSave(payload: ProjectInput): Promise<void> {
     if (!isAdmin || !editor) {
       throw new Error("Only Admins can manage project details");
@@ -139,8 +137,7 @@ export function ProjectsPage() {
     setEditor(null);
   }
 
-  // Manager: Assigned project status and progress
-  async function handleManagerSave(payload: ProjectStatusInput): Promise<void> {
+    async function handleManagerSave(payload: ProjectStatusInput): Promise<void> {
     if (
       !canManage ||
       !editor ||
@@ -180,7 +177,6 @@ export function ProjectsPage() {
     }
   }
 
-  // Feature-specific column configuration
   const columns = useMemo(
     () =>
       getProjectColumns({

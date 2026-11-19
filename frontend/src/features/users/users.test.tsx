@@ -1,4 +1,3 @@
-
 import {
   afterAll,
   afterEach,
@@ -9,22 +8,10 @@ import {
   it,
   vi,
 } from "vitest";
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-} from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { http, HttpResponse } from "msw";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
@@ -34,14 +21,7 @@ import { setAccessToken } from "@/lib/api-client";
 import { server } from "@/test/mocks/server";
 
 import type { AuthResponse } from "@/features/auth/auth.types";
-import type {
-  ManagedUser,
-  UpdateUserInput,
-} from "./users-api";
-
-// -----------------------------------------
-// Fixtures
-// -----------------------------------------
+import type { ManagedUser, UpdateUserInput } from "./users-api";
 
 const adminAccount: ManagedUser = {
   id: "admin-1",
@@ -69,11 +49,7 @@ const adminSession: AuthResponse = {
     email: adminAccount.email,
     role: "admin",
   },
-  permissions: [
-    "dashboard:read",
-    "users:read",
-    "users:manage",
-  ],
+  permissions: ["dashboard:read", "users:read", "users:manage"],
 };
 
 type PatchCall = {
@@ -84,10 +60,6 @@ type PatchCall = {
 let accounts: ManagedUser[];
 let patchCalls: PatchCall[];
 let listRequests: number;
-
-// -----------------------------------------
-// Render real Users page
-// -----------------------------------------
 
 function renderUsers() {
   const queryClient = new QueryClient({
@@ -107,22 +79,12 @@ function renderUsers() {
       <MemoryRouter initialEntries={["/users"]}>
         <AuthProvider>
           <Routes>
-            <Route
-              path="/login"
-              element={<h1>Login screen</h1>}
-            />
+            <Route path="/login" element={<h1>Login screen</h1>} />
 
             <Route
-              element={
-                <ProtectedRoute
-                  requiredPermission="users:manage"
-                />
-              }
+              element={<ProtectedRoute requiredPermission="users:manage" />}
             >
-              <Route
-                path="/users"
-                element={<UsersPage />}
-              />
+              <Route path="/users" element={<UsersPage />} />
             </Route>
           </Routes>
         </AuthProvider>
@@ -130,10 +92,6 @@ function renderUsers() {
     </QueryClientProvider>,
   );
 }
-
-// -----------------------------------------
-// Radix Select browser API support
-// -----------------------------------------
 
 beforeAll(() => {
   HTMLElement.prototype.scrollIntoView ??= () => {};
@@ -155,17 +113,10 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-// -----------------------------------------
-// MSW handlers
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
-  accounts = [
-    { ...adminAccount },
-    { ...managerAccount },
-  ];
+  accounts = [{ ...adminAccount }, { ...managerAccount }];
 
   patchCalls = [];
   listRequests = 0;
@@ -189,38 +140,26 @@ beforeEach(() => {
       });
     }),
 
-    http.patch(
-      "*/api/users/:id",
-      async ({ request, params }) => {
-        const id = String(params.id);
-        const input =
-          (await request.json()) as UpdateUserInput;
+    http.patch("*/api/users/:id", async ({ request, params }) => {
+      const id = String(params.id);
+      const input = (await request.json()) as UpdateUserInput;
 
-        patchCalls.push({ id, input });
+      patchCalls.push({ id, input });
 
-        accounts = accounts.map((account) =>
-          account.id === id
-            ? { ...account, ...input }
-            : account,
-        );
+      accounts = accounts.map((account) =>
+        account.id === id ? { ...account, ...input } : account,
+      );
 
-        return HttpResponse.json({
-          data: accounts.find(
-            (account) => account.id === id,
-          ),
-        });
-      },
-    ),
+      return HttpResponse.json({
+        data: accounts.find((account) => account.id === id),
+      });
+    }),
   );
 });
 
 afterEach(() => {
   setAccessToken(null);
 });
-
-// -----------------------------------------
-// Integration tests
-// -----------------------------------------
 
 describe("Users & Roles integration", () => {
   it("prevents an administrator from modifying their own account", async () => {
@@ -236,9 +175,7 @@ describe("Users & Roles integration", () => {
       name: /Current Admin/,
     });
 
-    expect(
-      within(ownRow).getByText("(You)"),
-    ).toBeInTheDocument();
+    expect(within(ownRow).getByText("(You)")).toBeInTheDocument();
 
     expect(
       within(ownRow).getByRole("combobox", {
@@ -272,7 +209,6 @@ describe("Users & Roles integration", () => {
       });
     };
 
-    // Open role selector.
     await user.click(getRoleSelect());
 
     await user.click(
@@ -281,10 +217,9 @@ describe("Users & Roles integration", () => {
       }),
     );
 
-    const confirmation = await screen.findByRole(
-      "alertdialog",
-      { name: "Change user role?" },
-    );
+    const confirmation = await screen.findByRole("alertdialog", {
+      name: "Change user role?",
+    });
 
     expect(
       within(confirmation).getByText(
@@ -292,10 +227,8 @@ describe("Users & Roles integration", () => {
       ),
     ).toBeInTheDocument();
 
-    // No mutation before confirmation.
     expect(patchCalls).toHaveLength(0);
 
-    // Cancel the change.
     await user.click(
       within(confirmation).getByRole("button", {
         name: "Cancel",
@@ -303,14 +236,11 @@ describe("Users & Roles integration", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole("alertdialog"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
     expect(patchCalls).toHaveLength(0);
 
-    // Open the selector again and confirm.
     await user.click(getRoleSelect());
 
     await user.click(
@@ -319,10 +249,9 @@ describe("Users & Roles integration", () => {
       }),
     );
 
-    const newConfirmation = await screen.findByRole(
-      "alertdialog",
-      { name: "Change user role?" },
-    );
+    const newConfirmation = await screen.findByRole("alertdialog", {
+      name: "Change user role?",
+    });
 
     await user.click(
       within(newConfirmation).getByRole("button", {
@@ -330,7 +259,6 @@ describe("Users & Roles integration", () => {
       }),
     );
 
-    // Verify the real PATCH payload.
     await waitFor(() => {
       expect(patchCalls).toEqual([
         {
@@ -340,12 +268,10 @@ describe("Users & Roles integration", () => {
       ]);
     });
 
-    // Verify React Query invalidated and refetched.
     await waitFor(() => {
       expect(listRequests).toBeGreaterThanOrEqual(2);
     });
 
-    // Verify the updated role is displayed.
     await waitFor(() => {
       expect(getRoleSelect()).toHaveTextContent("Viewer");
     });
@@ -369,10 +295,9 @@ describe("Users & Roles integration", () => {
       }),
     );
 
-    const confirmation = await screen.findByRole(
-      "alertdialog",
-      { name: "Deactivate account?" },
-    );
+    const confirmation = await screen.findByRole("alertdialog", {
+      name: "Deactivate account?",
+    });
 
     expect(
       within(confirmation).getByText(
@@ -402,10 +327,7 @@ describe("Users & Roles integration", () => {
     });
 
     await waitFor(() => {
-      expect(
-        within(getManagerRow()).getByText("Inactive"),
-      ).toBeInTheDocument();
-
+      expect(within(getManagerRow()).getByText("Inactive")).toBeInTheDocument();
       expect(
         within(getManagerRow()).getByRole("button", {
           name: "Activate",

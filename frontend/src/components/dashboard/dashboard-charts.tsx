@@ -39,7 +39,7 @@ type MonthlyActivity = MonthlyActivityPoint[];
 type ProjectStatusData = ProjectStatusCount[];
 type DepartmentData = DepartmentCount[];
 
-// Chart colors and labels
+
 
 const monthlyConfig = {
   started: {
@@ -72,7 +72,7 @@ const statusColors: Record<ProjectStatus, string> = {
   completed: "var(--chart-3)",
 };
 
-// Monthly project activity
+
 export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
   return (
     <Card className="min-w-0">
@@ -164,7 +164,6 @@ export function MonthlyActivityChart({ data }: { data: MonthlyActivity }) {
   );
 }
 
-// Project status distribution
 export function ProjectStatusChart({ data }: { data: ProjectStatusData }) {
   const chartData = data.map((item) => ({
     name: PROJECT_STATUS_LABELS[item.status],
@@ -252,7 +251,7 @@ export function ProjectStatusChart({ data }: { data: ProjectStatusData }) {
   );
 }
 
-// Employees by department
+
 export function DepartmentChart({ data }: { data: DepartmentData }) {
   return (
     <Card className="min-w-0">

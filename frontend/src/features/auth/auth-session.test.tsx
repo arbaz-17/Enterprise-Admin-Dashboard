@@ -1,4 +1,3 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -22,10 +21,6 @@ import { getAccessToken, setAccessToken } from "@/lib/api-client";
 import { server } from "@/test/mocks/server";
 
 import type { AuthResponse } from "@/features/auth/auth.types";
-
-// -----------------------------------------
-// Authentication fixtures
-// -----------------------------------------
 
 const adminSession: AuthResponse = {
   accessToken: "restored-admin-token",
@@ -60,10 +55,6 @@ const managerSession: AuthResponse = {
     "employees:read",
   ],
 };
-
-// -----------------------------------------
-// Render actual app layout and route guard
-// -----------------------------------------
 
 function renderTestApp() {
   const queryClient = new QueryClient({
@@ -112,14 +103,9 @@ function renderTestApp() {
   return queryClient;
 }
 
-// -----------------------------------------
-// Browser environment setup
-// -----------------------------------------
-
 beforeEach(() => {
   setAccessToken(null);
 
-  // Required by the real Sidebar and ThemeProvider.
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
@@ -145,10 +131,6 @@ afterEach(() => {
   setAccessToken(null);
   vi.unstubAllGlobals();
 });
-
-// -----------------------------------------
-// Session and authorization tests
-// -----------------------------------------
 
 describe("Session and sidebar authorization", () => {
   it("restores an existing session on application load", async () => {
@@ -195,7 +177,6 @@ describe("Session and sidebar authorization", () => {
       name: "Overview dashboard",
     });
 
-    // Simulate cached private data from the dashboard.
     queryClient.setQueryData(
       ["private-dashboard-data"],
       { confidential: true },
@@ -220,7 +201,6 @@ describe("Session and sidebar authorization", () => {
     expect(logoutRequests).toBe(1);
     expect(getAccessToken()).toBeNull();
 
-    // Logging out must also remove cached private data.
     expect(
       queryClient.getQueryData(["private-dashboard-data"]),
     ).toBeUndefined();
@@ -245,14 +225,12 @@ describe("Session and sidebar authorization", () => {
       name: "Overview dashboard",
     });
 
-    // Manager has employees:read.
     expect(
       screen.getByRole("link", {
         name: "Employees",
       }),
     ).toBeInTheDocument();
 
-    // Manager lacks users:manage and audits:read.
     expect(
       screen.queryByRole("link", {
         name: "Users & Roles",

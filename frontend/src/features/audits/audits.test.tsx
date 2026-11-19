@@ -10,10 +10,6 @@ import { filterAuditLogs, hasAuditFilters } from "./audits.filters";
 
 import type { AuditLog, AuditListResponse } from "./audits.types";
 
-// -----------------------------------------
-// Test records
-// -----------------------------------------
-
 const projectAudit: AuditLog = {
   id: "audit-1",
   actorUserId: "admin-1",
@@ -53,10 +49,6 @@ function auditResponse(data: AuditLog[]): AuditListResponse {
   };
 }
 
-// -----------------------------------------
-// Render real Audit Logs page
-// -----------------------------------------
-
 function renderAudits() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -73,10 +65,6 @@ function renderAudits() {
     </QueryClientProvider>,
   );
 }
-
-// -----------------------------------------
-// Tests
-// -----------------------------------------
 
 describe("Audit Logs", () => {
   it("displays an API error and recovers on retry", async () => {
@@ -145,7 +133,6 @@ describe("Audit Logs", () => {
 
     renderAudits();
 
-    // Wait for the API data, not just the table skeleton.
     expect(
       await screen.findByText("2 records displayed", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
@@ -154,12 +141,10 @@ describe("Audit Logs", () => {
       name: "Audit events",
     });
 
-    // Verify the initial records.
     expect(within(table).getByText("Arbaz Admin")).toBeInTheDocument();
 
     expect(within(table).getByText("Maya Manager")).toBeInTheDocument();
 
-    // Search using the actual UI.
     const searchForm = screen.getByRole("search");
 
     await user.type(
@@ -175,7 +160,6 @@ describe("Audit Logs", () => {
       }),
     );
 
-    // Wait for filtered data.
     await waitFor(() => {
       expect(screen.getByText("1 records displayed")).toBeInTheDocument();
     });
@@ -184,7 +168,6 @@ describe("Audit Logs", () => {
 
     expect(within(table).queryByText("Arbaz Admin")).not.toBeInTheDocument();
 
-    // Search should be client-side.
     expect(requests).toBe(1);
   });
 
@@ -202,7 +185,6 @@ describe("Audit Logs", () => {
 
     expect(result.map((log) => log.id)).toEqual([projectAudit.id]);
 
-    // Filtering by failure should exclude the successful log.
     expect(
       filterAuditLogs(records, {
         ...filters,

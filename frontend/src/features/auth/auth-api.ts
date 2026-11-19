@@ -28,7 +28,7 @@ export const authApi = {
     return refreshAccessToken();
   },
 
-  // Retained for explicit user/session revalidation.
+  
   async getCurrentUser(): Promise<CurrentUserResponse> {
     const { data } =
       await apiClient.get<CurrentUserResponse>(
@@ -43,7 +43,7 @@ export const authApi = {
   },
 };
 
-// Prevent duplicate restoration requests.
+
 let restorePromise: Promise<CurrentUserResponse> | null =
   null;
 

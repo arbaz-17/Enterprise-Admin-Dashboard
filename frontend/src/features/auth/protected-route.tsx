@@ -31,7 +31,6 @@ export function ProtectedRoute({
     retrySession,
   } = useAuth();
 
-  // Wait for session restoration.
   if (status === "loading") {
     return (
       <main
@@ -52,7 +51,6 @@ export function ProtectedRoute({
     );
   }
 
-  // Network/server errors should not be treated as logout.
   if (status === "error") {
     return (
       <main className="flex min-h-dvh items-center justify-center p-6">
@@ -79,7 +77,7 @@ export function ProtectedRoute({
     );
   }
 
-  // User is not logged in.
+
   if (status === "unauthenticated") {
     const from =
       location.pathname +
@@ -95,7 +93,6 @@ export function ProtectedRoute({
     );
   }
 
-  // Authenticated, but missing the required permission.
   if (
     requiredPermission &&
     !hasPermission(requiredPermission)

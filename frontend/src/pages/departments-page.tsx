@@ -55,7 +55,6 @@ export function DepartmentsPage() {
   const [deletingDepartment, setDeletingDepartment] =
     useState<Department | null>(null);
 
-  // Shared URL-based table state
   const tableState = getTableUrlState({
     params,
     setParams,
@@ -68,7 +67,7 @@ export function DepartmentsPage() {
 
   const q = (params.get("q") ?? "").trim().slice(0, 100);
 
-  // Server-side data fetching
+ 
   const { data, isPending, isError, isFetching, error, refetch } =
     useDepartments({
       page,
@@ -125,7 +124,7 @@ export function DepartmentsPage() {
     }
   }
 
-  // Feature-specific column definitions
+
   const columns = useMemo(
     () =>
       getDepartmentColumns({
@@ -142,7 +141,7 @@ export function DepartmentsPage() {
     [canManage],
   );
 
-  // Shared table configuration
+
   const tableProps = {
     columns,
     page,

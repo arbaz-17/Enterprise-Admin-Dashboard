@@ -68,7 +68,7 @@ const EmployeeStatusChart = lazy(() =>
 export function DashboardPage() {
   const queryClient = useQueryClient();
 
-  // Each dashboard section fetches independently.
+ 
   const metricsQuery = useDashboardMetrics();
   const activityQuery = useDashboardMonthlyActivity();
   const statusQuery = useDashboardProjectStatus();
@@ -86,8 +86,6 @@ export function DashboardPage() {
   ].some((query) => query.isFetching);
 
   const refreshAll = () => {
-    // Refetch all active dashboard queries independently.
-    // Cached data remains visible during background fetching.
     void queryClient.invalidateQueries({
       queryKey: dashboardKeys.all,
     });

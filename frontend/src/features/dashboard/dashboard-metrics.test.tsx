@@ -85,12 +85,11 @@ describe("Dashboard metrics integration", () => {
 
     renderWidget();
 
-    // The actual query displays its loading state.
+   
     expect(
       screen.getByText("Loading dashboard metrics..."),
     ).toBeInTheDocument();
 
-    // The hook allows one retry by default.
     expect(
       await screen.findByText(
         "Unable to load key performance indicators",
@@ -106,7 +105,6 @@ describe("Dashboard metrics integration", () => {
     const requestsBeforeRetry = requests;
     shouldFail = false;
 
-    // Retry through the real DashboardWidget.
     await user.click(
       screen.getByRole("button", {
         name: "Try again",
